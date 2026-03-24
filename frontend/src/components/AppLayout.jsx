@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { to: '/dashboard', label: 'Genel Bakis', hint: 'Performans ve ciro ozeti' },
+  { to: '/growth', label: 'Growth', hint: 'Donusum ve retention analizi' },
+  { to: '/pilot-readiness', label: 'Pilot', hint: 'Canliya hazirlik kontrolu' },
   { to: '/onboarding', label: 'Onboarding', hint: 'Ilk 10 dakika aktivasyon' },
   { to: '/plans', label: 'Paketler', hint: 'Plan ve kullanim limitleri' },
   { to: '/customers', label: 'Musteriler', hint: 'Cari kayit yonetimi' },

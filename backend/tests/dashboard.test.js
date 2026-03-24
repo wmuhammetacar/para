@@ -232,6 +232,7 @@ describe('Dashboard API', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body.periodDays).toBe(30);
+    expect(response.body.cohortMonths).toBe(6);
     expect(response.body.funnel.customers).toBe(1);
     expect(response.body.funnel.quotes).toBe(2);
     expect(response.body.funnel.invoices).toBe(2);
@@ -240,9 +241,37 @@ describe('Dashboard API', () => {
     expect(response.body.funnel.invoiceToPaidRate).toBe(50);
     expect(response.body.revenue.issued).toBe(3000);
     expect(response.body.revenue.collected).toBe(1000);
+    expect(response.body.comparison.previousPeriod.issued).toBe(0);
+    expect(response.body.velocity.quoteToInvoiceAvgDays).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(response.body.trend)).toBe(true);
     expect(response.body.trend).toHaveLength(6);
+    expect(Array.isArray(response.body.retention)).toBe(true);
+    expect(response.body.retention).toHaveLength(6);
     expect(response.body.health.score).toBeGreaterThanOrEqual(0);
+  });
+
+  test('returns pilot readiness checks and action plan', async () => {
+    const { token } = await registerAndLogin();
+    const customer = await createCustomer(token, 'Pilot Musterisi', {
+      email: 'pilot@test.local',
+      phone: '+90 555 454 4545'
+    });
+    await createQuote(token, customer.id, new Date().toISOString().slice(0, 10), 2500);
+    const invoice = await createInvoice(token, customer.id, new Date().toISOString().slice(0, 10), 2500);
+    await markInvoicePaid(token, invoice.id, new Date().toISOString().slice(0, 10));
+
+    const response = await request(app)
+      .get('/api/dashboard/pilot-readiness?period=30')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.periodDays).toBe(30);
+    expect(typeof response.body.score).toBe('number');
+    expect(response.body.summary.totalChecks).toBe(6);
+    expect(Array.isArray(response.body.checks)).toBe(true);
+    expect(response.body.checks).toHaveLength(6);
+    expect(Array.isArray(response.body.nextActions)).toBe(true);
+    expect(response.body.status.code).toBeDefined();
   });
 
   test('returns plan snapshot and supports plan upgrade', async () => {

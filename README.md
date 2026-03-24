@@ -20,6 +20,8 @@ Teklifim, Turkiye'deki kucuk isletmeler icin hizli teklif ve fatura yonetimi sun
 6. Onboarding activation flow (first customer/quote/invoice/reminder checklist + quick-win priorities + estimated completion time)
 7. Growth analytics panel (quote->invoice and invoice->payment conversion, 6-month trend, revenue composition)
 8. Package and pricing management (starter/standard package switch + limit usage tracking)
+9. Advanced growth analytics (period comparison, conversion velocity, cohort retention matrix)
+10. Pilot readiness center (readiness score, control checklist, prioritized action plan)
 
 ## Project Structure
 
@@ -44,6 +46,8 @@ teklifim/
     SPRINT_8_EXECUTION.md
     SPRINT_9_EXECUTION.md
     SPRINT_10_EXECUTION.md
+    SPRINT_11_EXECUTION.md
+    SPRINT_12_EXECUTION.md
     STAGING_SETUP.md
     STAGING_SMOKE_RUNBOOK.md
     ROLLBACK_RUNBOOK.md
@@ -213,10 +217,11 @@ Base URL: `http://localhost:4000/api`
 - `GET /dashboard/stats`
 - `GET /dashboard/stats?period=all|today|7|30`
 - `GET /dashboard/activity?limit=1..50&dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`
-- `GET /dashboard/growth?period=7..365`
+- `GET /dashboard/growth?period=7..365&cohortMonths=3..12`
 - `GET /dashboard/activation`
 - `GET /dashboard/plan`
 - `PATCH /dashboard/plan`
+- `GET /dashboard/pilot-readiness?period=7..90`
 
 ### Health
 

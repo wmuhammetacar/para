@@ -3,10 +3,12 @@ import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import CustomersPage from './pages/CustomersPage';
 import DashboardPage from './pages/DashboardPage';
+import GrowthPage from './pages/GrowthPage';
 import InvoicesPage from './pages/InvoicesPage';
 import InvoiceDetailPage from './pages/InvoiceDetailPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
+import PilotReadinessPage from './pages/PilotReadinessPage';
 import PlansPage from './pages/PlansPage';
 import QuotesPage from './pages/QuotesPage';
 import QuoteDetailPage from './pages/QuoteDetailPage';
@@ -26,6 +28,8 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="growth" element={<GrowthPage />} />
+        <Route path="pilot-readiness" element={<PilotReadinessPage />} />
         <Route path="onboarding" element={<OnboardingPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="customers" element={<CustomersPage />} />
