@@ -1,56 +1,48 @@
 import { sendError } from '../utils/response.js';
-
-const WINDOW_MS = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000;
-const MAX_REQUESTS = Number(process.env.AUTH_RATE_LIMIT_MAX) || 20;
-const MAX_BUCKETS = 5000;
-const buckets = new Map();
-
-function cleanupExpired(now) {
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) {
-      buckets.delete(key);
-    }
-  }
-}
+import { consumeRateLimitBucket, resolveRateLimitPolicy } from '../utils/rateLimitStore.js';
 
 function getRateLimitKey(req) {
   return `${req.ip}:${req.path}`;
 }
 
-export function authRateLimit(req, res, next) {
+export async function authRateLimit(req, res, next) {
   if (process.env.NODE_ENV === 'test') {
     next();
     return;
   }
 
-  const now = Date.now();
+  const { windowMs, max } = resolveRateLimitPolicy(
+    process.env.AUTH_RATE_LIMIT_WINDOW_MS,
+    process.env.AUTH_RATE_LIMIT_MAX,
+    15 * 60 * 1000,
+    20
+  );
 
-  if (buckets.size > MAX_BUCKETS) {
-    cleanupExpired(now);
-  }
+  try {
+    const result = await consumeRateLimitBucket({
+      scope: 'auth',
+      bucketKey: getRateLimitKey(req),
+      windowMs,
+      max
+    });
 
-  const key = getRateLimitKey(req);
-  const existing = buckets.get(key);
+    if (result.allowed) {
+      next();
+      return;
+    }
 
-  if (!existing || existing.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    next();
-    return;
-  }
-
-  existing.count += 1;
-
-  if (existing.count > MAX_REQUESTS) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
-    res.setHeader('Retry-After', String(retryAfterSeconds));
+    res.setHeader('Retry-After', String(result.retryAfterSeconds));
     sendError(
       res,
       429,
       'RATE_LIMITED',
       'Cok fazla giris denemesi yaptiniz. Lutfen biraz sonra tekrar deneyin.'
     );
-    return;
+  } catch (error) {
+    sendError(res, 503, 'RATE_LIMIT_UNAVAILABLE', 'Gecici olarak istek limiti dogrulanamiyor.');
   }
+}
 
-  next();
+export function resetAuthRateLimitForTests() {
+  // No-op: limiter state is persisted in DB and cleaned in test setup.
 }

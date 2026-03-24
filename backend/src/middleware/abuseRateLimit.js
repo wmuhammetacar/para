@@ -1,7 +1,5 @@
 import { sendError } from '../utils/response.js';
-
-const buckets = new Map();
-const MAX_BUCKETS = 20000;
+import { consumeRateLimitBucket } from '../utils/rateLimitStore.js';
 
 function resolvePositiveInt(value, fallback) {
   const parsed = Number(value);
@@ -33,14 +31,6 @@ function getScopePolicy(scope) {
     code: 'REMINDER_RATE_LIMITED',
     message: 'Hatirlatma islemleri icin cok fazla istek gonderdiniz. Lutfen sonra tekrar deneyin.'
   };
-}
-
-function cleanupExpired(now) {
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) {
-      buckets.delete(key);
-    }
-  }
 }
 
 function classifyScope(req) {
@@ -79,31 +69,26 @@ export function abuseRateLimit(req, res, next) {
     return;
   }
 
-  const now = Date.now();
-  if (buckets.size > MAX_BUCKETS) {
-    cleanupExpired(now);
-  }
+  consumeRateLimitBucket({
+    scope: `abuse:${config.scope}`,
+    bucketKey: buildBucketKey(req, config.scope),
+    windowMs: config.windowMs,
+    max: config.max
+  })
+    .then((result) => {
+      if (result.allowed) {
+        next();
+        return;
+      }
 
-  const key = buildBucketKey(req, config.scope);
-  const existing = buckets.get(key);
-
-  if (!existing || existing.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + config.windowMs });
-    next();
-    return;
-  }
-
-  existing.count += 1;
-  if (existing.count > config.max) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
-    res.setHeader('Retry-After', String(retryAfterSeconds));
-    sendError(res, 429, config.code, config.message);
-    return;
-  }
-
-  next();
+      res.setHeader('Retry-After', String(result.retryAfterSeconds));
+      sendError(res, 429, config.code, config.message);
+    })
+    .catch(() => {
+      sendError(res, 503, 'RATE_LIMIT_UNAVAILABLE', 'Gecici olarak istek limiti dogrulanamiyor.');
+    });
 }
 
 export function resetAbuseRateLimitForTests() {
-  buckets.clear();
+  // No-op: limiter state is persisted in DB and cleaned in test setup.
 }

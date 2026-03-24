@@ -277,7 +277,7 @@ describe('Dashboard API', () => {
     expect(response.body.status.code).toBeDefined();
   });
 
-  test('returns plan snapshot and supports plan upgrade', async () => {
+  test('returns plan snapshot and supports payment-confirmed plan upgrade', async () => {
     const { token } = await registerAndLogin();
 
     const currentPlanResponse = await request(app)
@@ -289,27 +289,77 @@ describe('Dashboard API', () => {
     expect(currentPlanResponse.body.usage.customers.limit).toBe(50);
     expect(Array.isArray(currentPlanResponse.body.availablePlans)).toBe(true);
 
+    const requestResponse = await request(app)
+      .post('/api/dashboard/plan/change-request')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ planCode: 'standard' });
+
+    expect(requestResponse.statusCode).toBe(201);
+    expect(requestResponse.body.targetPlanCode).toBe('standard');
+    expect(requestResponse.body.status).toBe('pending');
+
+    const confirmResponse = await request(app)
+      .post(`/api/dashboard/plan/change-request/${requestResponse.body.id}/confirm`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('x-billing-token', BILLING_TEST_TOKEN)
+      .send({ paymentReference: 'PAY-TEST-001' });
+
+    expect(confirmResponse.statusCode).toBe(200);
+    expect(confirmResponse.body.status).toBe('paid');
+
     const patchResponse = await request(app)
       .patch('/api/dashboard/plan')
       .set('Authorization', `Bearer ${token}`)
-      .set('x-billing-token', BILLING_TEST_TOKEN)
-      .send({ planCode: 'standard' });
+      .send({
+        planCode: 'standard',
+        planChangeRequestId: requestResponse.body.id
+      });
 
     expect(patchResponse.statusCode).toBe(200);
     expect(patchResponse.body.currentPlan.code).toBe('standard');
     expect(patchResponse.body.usage.customers.limit).toBe(250);
   });
 
-  test('rejects plan update when billing token missing', async () => {
+  test('rejects plan update when payment is not confirmed', async () => {
     const { token } = await registerAndLogin();
+
+    const requestResponse = await request(app)
+      .post('/api/dashboard/plan/change-request')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ planCode: 'standard' });
+
+    expect(requestResponse.statusCode).toBe(201);
 
     const patchResponse = await request(app)
       .patch('/api/dashboard/plan')
       .set('Authorization', `Bearer ${token}`)
+      .send({
+        planCode: 'standard',
+        planChangeRequestId: requestResponse.body.id
+      });
+
+    expect(patchResponse.statusCode).toBe(400);
+    expect(patchResponse.body.success).toBe(false);
+    expect(patchResponse.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  test('rejects plan change confirmation when billing token missing', async () => {
+    const { token } = await registerAndLogin();
+
+    const requestResponse = await request(app)
+      .post('/api/dashboard/plan/change-request')
+      .set('Authorization', `Bearer ${token}`)
       .send({ planCode: 'standard' });
 
-    expect(patchResponse.statusCode).toBe(403);
-    expect(patchResponse.body.success).toBe(false);
-    expect(patchResponse.body.error.code).toBe('FORBIDDEN');
+    expect(requestResponse.statusCode).toBe(201);
+
+    const confirmResponse = await request(app)
+      .post(`/api/dashboard/plan/change-request/${requestResponse.body.id}/confirm`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ paymentReference: 'PAY-TEST-002' });
+
+    expect(confirmResponse.statusCode).toBe(403);
+    expect(confirmResponse.body.success).toBe(false);
+    expect(confirmResponse.body.error.code).toBe('FORBIDDEN');
   });
 });

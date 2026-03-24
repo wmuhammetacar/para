@@ -136,7 +136,8 @@ Backend `.env` icin kritik degiskenler:
 - `COMPANY_ADDRESS` (opsiyonel, PDF footer/header icin)
 - `COMPANY_TAX_NUMBER` (opsiyonel, PDF footer icin)
 - `CORS_ORIGIN` (ornek: `http://localhost:5173,http://127.0.0.1:5173`)
-- `BILLING_INTERNAL_TOKEN` (`PATCH /dashboard/plan` icin zorunlu billing yetki anahtari)
+- `BILLING_INTERNAL_TOKEN` (`POST /dashboard/plan/change-request/:id/confirm` icin zorunlu billing servis anahtari)
+- `BILLING_PLAN_REQUEST_TTL_MINUTES` (plan degisikligi odeme talebi gecerlilik suresi, varsayilan: `30`)
 - `METRICS_INTERNAL_TOKEN` (`GET /health/metrics` icin zorunlu internal erisim anahtari)
 - `TRUST_PROXY` (`true/1` ise audit loglarinda `x-forwarded-for` trusted kabul edilir)
 - `ABUSE_WRITE_RATE_LIMIT_WINDOW_MS`
@@ -232,8 +233,11 @@ Base URL: `http://localhost:4000/api`
 - `GET /dashboard/growth?period=7..365&cohortMonths=3..12`
 - `GET /dashboard/activation`
 - `GET /dashboard/plan`
-- `PATCH /dashboard/plan`
+- `POST /dashboard/plan/change-request`
+- `POST /dashboard/plan/change-request/:id/confirm`
   - Bu endpoint guvenlik nedeniyle `x-billing-token: <BILLING_INTERNAL_TOKEN>` header'i ister.
+- `PATCH /dashboard/plan`
+  - `planChangeRequestId` zorunludur; yalnizca `paid` durumuna gecmis talep uygulanir.
 - `GET /dashboard/pilot-readiness?period=7..90`
 
 ### Health
@@ -348,7 +352,7 @@ Base URL: `http://localhost:4000/api`
 - All protected endpoints require `Authorization: Bearer <token>`.
 - PDF output includes company name, customer info, item table, total, and date with a corporate layout template.
 - Auth endpointlerinde temel brute-force korumasi icin rate limit vardir.
-- Auth disindaki protected write/pdf/reminder endpointlerinde de abuse rate limit vardir.
+- Auth ve auth disindaki protected write/pdf/reminder endpointlerinde DB-backed rate limit vardir.
 - Login endpointinde hesap bazli gecici kilitleme vardir (ardisik hatali deneme limiti asildiginda).
 - Tum API response'larinda `X-Request-Id` header'i doner.
 - Kritik is aksiyonlari (`auth`, `customer`, `quote`, `invoice`) `audit_logs` tablosuna yazilir.
@@ -358,6 +362,7 @@ Base URL: `http://localhost:4000/api`
 - Register API sifre politikasi uygular: 8-72 karakter, en az bir buyuk harf, bir kucuk harf ve bir rakam.
 - Reminder operasyonlari icin status ozet/listesi ve failed job retry endpointleri mevcuttur.
 - Reminder queue sadece `next_attempt_at` zamani gelen isleri isler; failed job'lar backoff politikasina gore otomatik yeniden planlanir.
+- Plan degisikligi akisinda odeme onayi zorunludur (change-request -> billing confirm -> apply).
 
 ## Professional Development Program
 
@@ -373,6 +378,7 @@ Bu repository profesyonel gelistirme programi ile desteklenmektedir:
 - Sprint 6 execution: `docs/SPRINT_6_EXECUTION.md`
 - Definition of Done: `docs/DEFINITION_OF_DONE.md`
 - Release checklist: `docs/RELEASE_CHECKLIST.md`
+- Release readiness report: `docs/RELEASE_READINESS_2026-03-25.md`
 - Risk register: `docs/RISK_REGISTER.md`
 - Staging setup guide: `docs/STAGING_SETUP.md`
 - Rollback runbook: `docs/ROLLBACK_RUNBOOK.md`

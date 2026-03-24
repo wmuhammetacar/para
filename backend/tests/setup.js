@@ -9,7 +9,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await run('DELETE FROM rate_limit_counters');
   await run('DELETE FROM audit_logs');
+  await run('DELETE FROM billing_plan_change_requests');
   await run('DELETE FROM reminder_jobs');
   await run('DELETE FROM items');
   await run('DELETE FROM invoices');

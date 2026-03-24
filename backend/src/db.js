@@ -290,6 +290,31 @@ async function createIntegrityTriggers() {
   `);
 
   await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_billing_plan_change_state_insert
+    BEFORE INSERT ON billing_plan_change_requests
+    FOR EACH ROW
+    WHEN NEW.status NOT IN ('pending', 'paid', 'applied', 'expired', 'cancelled')
+      OR (NEW.status = 'paid' AND (NEW.paid_at IS NULL OR TRIM(NEW.paid_at) = ''))
+      OR (NEW.status = 'applied' AND (NEW.applied_at IS NULL OR TRIM(NEW.applied_at) = ''))
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_BILLING_STATE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_billing_plan_change_state_update
+    BEFORE UPDATE OF status, paid_at, applied_at ON billing_plan_change_requests
+    FOR EACH ROW
+    WHEN NEW.status NOT IN ('pending', 'paid', 'applied', 'expired', 'cancelled')
+      OR (NEW.status = 'pending' AND (NEW.paid_at IS NOT NULL OR NEW.applied_at IS NOT NULL))
+      OR (NEW.status = 'paid' AND (NEW.paid_at IS NULL OR TRIM(NEW.paid_at) = '' OR NEW.applied_at IS NOT NULL))
+      OR (NEW.status = 'applied' AND (NEW.paid_at IS NULL OR NEW.applied_at IS NULL OR TRIM(NEW.applied_at) = ''))
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_BILLING_STATE');
+    END;
+  `);
+
+  await run(`
     CREATE TRIGGER IF NOT EXISTS trg_items_parent_insert
     BEFORE INSERT ON items
     FOR EACH ROW
@@ -520,6 +545,21 @@ export async function initDb() {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS billing_plan_change_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      target_plan_code TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      payment_reference TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      paid_at TEXT,
+      applied_at TEXT,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER,
@@ -534,6 +574,19 @@ export async function initDb() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS rate_limit_counters (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope TEXT NOT NULL,
+      bucket_key TEXT NOT NULL,
+      window_start INTEGER NOT NULL,
+      window_end INTEGER NOT NULL,
+      request_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   await ensureColumn('audit_logs', 'metadata_json', 'TEXT');
   await ensureColumn('audit_logs', 'request_id', 'TEXT');
   await ensureColumn('audit_logs', 'ip_address', 'TEXT');
@@ -545,6 +598,11 @@ export async function initDb() {
   await ensureColumn('reminder_jobs', 'retry_count', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('reminder_jobs', 'last_retry_at', 'TEXT');
   await ensureColumn('reminder_jobs', 'next_attempt_at', 'TEXT');
+  await ensureColumn('billing_plan_change_requests', 'status', "TEXT NOT NULL DEFAULT 'pending'");
+  await ensureColumn('billing_plan_change_requests', 'payment_reference', 'TEXT');
+  await ensureColumn('billing_plan_change_requests', 'paid_at', 'TEXT');
+  await ensureColumn('billing_plan_change_requests', 'applied_at', 'TEXT');
+  await ensureColumn('billing_plan_change_requests', 'expires_at', 'TEXT');
 
   await run(`
     UPDATE reminder_jobs
@@ -560,6 +618,16 @@ export async function initDb() {
     UPDATE reminder_jobs
     SET retry_count = 0
     WHERE retry_count IS NULL OR retry_count < 0
+  `);
+  await run(`
+    UPDATE billing_plan_change_requests
+    SET status = 'pending'
+    WHERE status IS NULL OR status NOT IN ('pending', 'paid', 'applied', 'expired', 'cancelled')
+  `);
+  await run(`
+    UPDATE billing_plan_change_requests
+    SET expires_at = datetime(created_at, '+30 minute')
+    WHERE expires_at IS NULL OR TRIM(expires_at) = ''
   `);
 
   await createIntegrityTriggers();
@@ -583,6 +651,12 @@ export async function initDb() {
   await run('CREATE INDEX IF NOT EXISTS idx_reminder_jobs_invoice_id ON reminder_jobs(invoice_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_reminder_jobs_status ON reminder_jobs(status)');
   await run('CREATE INDEX IF NOT EXISTS idx_reminder_jobs_next_attempt_at ON reminder_jobs(next_attempt_at)');
+  await run(
+    'CREATE INDEX IF NOT EXISTS idx_billing_plan_change_user_status ON billing_plan_change_requests(user_id, status)'
+  );
+  await run(
+    'CREATE INDEX IF NOT EXISTS idx_billing_plan_change_expires ON billing_plan_change_requests(expires_at)'
+  );
   await run('CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type)');
   await run('CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)');
@@ -593,6 +667,10 @@ export async function initDb() {
   await run(
     'CREATE INDEX IF NOT EXISTS idx_audit_logs_user_resource_created_at ON audit_logs(user_id, resource_type, created_at)'
   );
+  await run(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_rate_limit_scope_key_window_uq ON rate_limit_counters(scope, bucket_key, window_start)'
+  );
+  await run('CREATE INDEX IF NOT EXISTS idx_rate_limit_window_end ON rate_limit_counters(window_end)');
 }
 
 export function closeDb() {

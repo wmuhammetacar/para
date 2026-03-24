@@ -15,7 +15,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `cd ../backend && PORT=${backendPort} npm run seed && PORT=${backendPort} npm run dev`,
+      command: `cd ../backend && rm -f e2e.sqlite e2e.sqlite-wal e2e.sqlite-shm e2e.sqlite-journal && JWT_SECRET=e2e_secret CORS_ORIGIN=http://127.0.0.1:${frontendPort} BILLING_INTERNAL_TOKEN=e2e_billing_token METRICS_INTERNAL_TOKEN=e2e_metrics_token DB_PATH=./e2e.sqlite DEMO_PASSWORD=123456 PORT=${backendPort} npm run seed && JWT_SECRET=e2e_secret CORS_ORIGIN=http://127.0.0.1:${frontendPort} BILLING_INTERNAL_TOKEN=e2e_billing_token METRICS_INTERNAL_TOKEN=e2e_metrics_token DB_PATH=./e2e.sqlite PORT=${backendPort} npm run dev`,
       url: `http://127.0.0.1:${backendPort}/health`,
       reuseExistingServer: false,
       timeout: 120_000

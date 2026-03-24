@@ -11,14 +11,16 @@ let auditPurgeInterval = null;
 async function start() {
   try {
     const shouldEnforceStrictConfig = process.env.NODE_ENV !== 'test';
+    const requireConfig = (key, message) => {
+      if (shouldEnforceStrictConfig && !String(process.env[key] || '').trim()) {
+        throw new Error(message);
+      }
+    };
 
-    if (shouldEnforceStrictConfig && !process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET tanimli olmadan servis baslatilamaz.');
-    }
-
-    if (shouldEnforceStrictConfig && !process.env.CORS_ORIGIN) {
-      throw new Error('CORS_ORIGIN tanimli olmadan servis baslatilamaz.');
-    }
+    requireConfig('JWT_SECRET', 'JWT_SECRET tanimli olmadan servis baslatilamaz.');
+    requireConfig('CORS_ORIGIN', 'CORS_ORIGIN tanimli olmadan servis baslatilamaz.');
+    requireConfig('METRICS_INTERNAL_TOKEN', 'METRICS_INTERNAL_TOKEN tanimli olmadan servis baslatilamaz.');
+    requireConfig('BILLING_INTERNAL_TOKEN', 'BILLING_INTERNAL_TOKEN tanimli olmadan servis baslatilamaz.');
 
     await initDb();
     if (process.env.NODE_ENV !== 'test') {

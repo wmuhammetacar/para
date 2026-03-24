@@ -48,5 +48,11 @@ Bu dokuman, Teklifim MVP icin sade ve satilabilir paket yapisini tanimlar.
 - Paket yonetimi uygulama icinde `/plans` ekranindan yapilir.
 - API:
   - `GET /api/dashboard/plan`
+  - `POST /api/dashboard/plan/change-request`
+  - `POST /api/dashboard/plan/change-request/:id/confirm` (billing servis token'i gerekir)
   - `PATCH /api/dashboard/plan`
+- Guvenli akis:
+  - Kullanici once `change-request` olusturur.
+  - Billing servisi odemeyi dogruladiktan sonra talebi `paid` durumuna getirir.
+  - Kullanici ancak `paid` taleple plan degisikligini uygular.
 - Limit asiminda create endpointleri `BUSINESS_RULE_VIOLATION` kodu ile durdurulur.

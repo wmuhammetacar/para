@@ -1,5 +1,7 @@
 # Release Checklist
 
+Son readiness raporu: `docs/RELEASE_READINESS_2026-03-25.md`
+
 ## Pre-Release
 
 - [ ] Open bug listesi gozden gecirildi

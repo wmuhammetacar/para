@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { all, get, run } from '../db.js';
+import { all, get, run, withDbTransaction } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
 import { recordAuditLog } from '../utils/audit.js';
-import { badRequest, forbidden } from '../utils/httpErrors.js';
+import { badRequest, forbidden, notFound } from '../utils/httpErrors.js';
 import { getUserPlanSnapshot, listPlans, normalizePlanCode } from '../utils/plans.js';
 
 const router = Router();
@@ -28,6 +28,15 @@ function assertBillingAuthorized(req) {
     throw forbidden('Bu islem yalnizca yetkili billing akisiyla yapilabilir.');
   }
 }
+
+const PLAN_CHANGE_REQUEST_TTL_MINUTES = (() => {
+  const parsed = Number(process.env.BILLING_PLAN_REQUEST_TTL_MINUTES);
+  if (!Number.isInteger(parsed) || parsed < 5 || parsed > 24 * 60) {
+    return 30;
+  }
+
+  return parsed;
+})();
 
 function isoDateOffset(days) {
   const date = new Date();
@@ -181,6 +190,47 @@ function normalizePlanPatch(value) {
   }
 
   return planCode;
+}
+
+function normalizePlanChangeRequestId(value) {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw badRequest('Gecerli bir plan degisikligi talebi secin.', [
+      { field: 'planChangeRequestId', rule: 'integer' }
+    ]);
+  }
+
+  return id;
+}
+
+function normalizePaymentReference(value) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) {
+    throw badRequest('Odeme referansi zorunludur.', [{ field: 'paymentReference', rule: 'required' }]);
+  }
+
+  if (text.length > 120) {
+    throw badRequest('Odeme referansi en fazla 120 karakter olabilir.', [
+      { field: 'paymentReference', rule: 'maxLength', max: 120 }
+    ]);
+  }
+
+  return text;
+}
+
+function isRequestExpired(expiresAt) {
+  const raw = String(expiresAt || '').trim();
+  if (!raw) {
+    return true;
+  }
+
+  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+  const parsed = new Date(normalized.endsWith('Z') ? normalized : `${normalized}Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return true;
+  }
+
+  return parsed.getTime() < Date.now();
 }
 
 function toPercent(part, total) {
@@ -1000,9 +1050,8 @@ router.get('/plan', async (req, res, next) => {
   }
 });
 
-router.patch('/plan', async (req, res, next) => {
+router.post('/plan/change-request', async (req, res, next) => {
   try {
-    assertBillingAuthorized(req);
     const planCode = normalizePlanPatch(req.body.planCode);
     const existing = await get('SELECT id, plan_code FROM users WHERE id = ?', [req.user.id]);
     if (!existing) {
@@ -1010,20 +1059,237 @@ router.patch('/plan', async (req, res, next) => {
       return;
     }
 
-    if (existing.plan_code !== planCode) {
-      await run('UPDATE users SET plan_code = ? WHERE id = ?', [planCode, req.user.id]);
-      await recordAuditLog({
-        req,
-        userId: req.user.id,
-        eventType: 'PLAN_UPDATED',
-        resourceType: 'user',
-        resourceId: String(req.user.id),
-        metadata: {
-          oldPlanCode: existing.plan_code || 'starter',
-          newPlanCode: planCode
-        }
-      });
+    if (existing.plan_code === planCode) {
+      next(
+        badRequest('Secilen paket zaten aktif.', [
+          { field: 'planCode', rule: 'differentFromCurrent' }
+        ])
+      );
+      return;
     }
+
+    await run(
+      `
+      UPDATE billing_plan_change_requests
+      SET status = 'expired'
+      WHERE user_id = ? AND status = 'pending' AND datetime(expires_at) < datetime('now')
+      `,
+      [req.user.id]
+    );
+
+    const insertResult = await run(
+      `
+      INSERT INTO billing_plan_change_requests (user_id, target_plan_code, status, expires_at)
+      VALUES (?, ?, 'pending', datetime('now', ?))
+      `,
+      [req.user.id, planCode, `+${PLAN_CHANGE_REQUEST_TTL_MINUTES} minute`]
+    );
+
+    const createdRequest = await get(
+      `
+      SELECT id, target_plan_code, status, expires_at, created_at
+      FROM billing_plan_change_requests
+      WHERE id = ? AND user_id = ?
+      `,
+      [insertResult.id, req.user.id]
+    );
+
+    if (!createdRequest) {
+      next(badRequest('Plan degisikligi talebi olusturulamadi.'));
+      return;
+    }
+
+    await recordAuditLog({
+      req,
+      userId: req.user.id,
+      eventType: 'PLAN_CHANGE_REQUEST_CREATED',
+      resourceType: 'billing_plan_change_request',
+      resourceId: String(createdRequest.id),
+      metadata: {
+        targetPlanCode: createdRequest.target_plan_code,
+        status: createdRequest.status,
+        expiresAt: createdRequest.expires_at
+      }
+    });
+
+    res.status(201).json({
+      id: createdRequest.id,
+      userId: req.user.id,
+      targetPlanCode: createdRequest.target_plan_code,
+      status: createdRequest.status,
+      createdAt: createdRequest.created_at,
+      expiresAt: createdRequest.expires_at
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/plan/change-request/:id/confirm', async (req, res, next) => {
+  try {
+    assertBillingAuthorized(req);
+    const requestId = normalizePlanChangeRequestId(req.params.id);
+    const paymentReference = normalizePaymentReference(req.body.paymentReference);
+    const billingRequest = await get(
+      `
+      SELECT id, user_id, target_plan_code, status, expires_at, paid_at, applied_at
+      FROM billing_plan_change_requests
+      WHERE id = ?
+      `,
+      [requestId]
+    );
+
+    if (!billingRequest) {
+      next(notFound('Plan degisikligi talebi bulunamadi.'));
+      return;
+    }
+
+    if (billingRequest.status === 'applied') {
+      next(badRequest('Bu plan degisikligi talebi zaten uygulandi.'));
+      return;
+    }
+
+    if (isRequestExpired(billingRequest.expires_at)) {
+      if (billingRequest.status === 'pending') {
+        await run(
+          'UPDATE billing_plan_change_requests SET status = \'expired\' WHERE id = ? AND status = \'pending\'',
+          [billingRequest.id]
+        );
+      }
+      next(badRequest('Plan degisikligi talebinin suresi dolmus.'));
+      return;
+    }
+
+    if (billingRequest.status !== 'pending') {
+      next(badRequest('Bu plan degisikligi talebi bu asamada onaylanamaz.'));
+      return;
+    }
+
+    await run(
+      `
+      UPDATE billing_plan_change_requests
+      SET status = 'paid',
+          payment_reference = ?,
+          paid_at = datetime('now')
+      WHERE id = ? AND status = 'pending'
+      `,
+      [paymentReference, billingRequest.id]
+    );
+
+    await recordAuditLog({
+      req,
+      userId: billingRequest.user_id,
+      eventType: 'PLAN_CHANGE_PAYMENT_CONFIRMED',
+      resourceType: 'billing_plan_change_request',
+      resourceId: String(billingRequest.id),
+      metadata: {
+        targetPlanCode: billingRequest.target_plan_code,
+        paymentReference
+      }
+    });
+
+    const updated = await get(
+      `
+      SELECT id, user_id, target_plan_code, status, payment_reference, created_at, paid_at, expires_at
+      FROM billing_plan_change_requests
+      WHERE id = ?
+      `,
+      [billingRequest.id]
+    );
+
+    res.json({
+      id: updated.id,
+      userId: updated.user_id,
+      targetPlanCode: updated.target_plan_code,
+      status: updated.status,
+      paymentReference: updated.payment_reference,
+      createdAt: updated.created_at,
+      paidAt: updated.paid_at,
+      expiresAt: updated.expires_at
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/plan', async (req, res, next) => {
+  try {
+    const planCode = normalizePlanPatch(req.body.planCode);
+    const planChangeRequestId = normalizePlanChangeRequestId(req.body.planChangeRequestId);
+    const existing = await get('SELECT id, plan_code FROM users WHERE id = ?', [req.user.id]);
+    if (!existing) {
+      next(badRequest('Kullanici bulunamadi.'));
+      return;
+    }
+
+    const billingRequest = await get(
+      `
+      SELECT id, user_id, target_plan_code, status, payment_reference, created_at, paid_at, applied_at, expires_at
+      FROM billing_plan_change_requests
+      WHERE id = ? AND user_id = ?
+      `,
+      [planChangeRequestId, req.user.id]
+    );
+
+    if (!billingRequest) {
+      next(notFound('Plan degisikligi talebi bulunamadi.'));
+      return;
+    }
+
+    if (billingRequest.target_plan_code !== planCode) {
+      next(
+        badRequest('Talep edilen paket ile odeme talebi uyusmuyor.', [
+          { field: 'planCode', rule: 'mustMatchRequest' }
+        ])
+      );
+      return;
+    }
+
+    if (isRequestExpired(billingRequest.expires_at)) {
+      if (billingRequest.status === 'pending') {
+        await run('UPDATE billing_plan_change_requests SET status = \'expired\' WHERE id = ?', [billingRequest.id]);
+      }
+      next(badRequest('Plan degisikligi talebinin suresi dolmus.'));
+      return;
+    }
+
+    if (billingRequest.status !== 'paid') {
+      next(
+        badRequest('Plan degisikligi icin once odemenin onaylanmasi gerekir.', [
+          { field: 'planChangeRequestId', rule: 'mustBePaid' }
+        ])
+      );
+      return;
+    }
+
+    await withDbTransaction(async () => {
+      if (existing.plan_code !== planCode) {
+        await run('UPDATE users SET plan_code = ? WHERE id = ?', [planCode, req.user.id]);
+        await recordAuditLog({
+          req,
+          userId: req.user.id,
+          eventType: 'PLAN_UPDATED',
+          resourceType: 'user',
+          resourceId: String(req.user.id),
+          metadata: {
+            oldPlanCode: existing.plan_code || 'starter',
+            newPlanCode: planCode,
+            planChangeRequestId: billingRequest.id,
+            paymentReference: billingRequest.payment_reference || null
+          }
+        });
+      }
+
+      await run(
+        `
+        UPDATE billing_plan_change_requests
+        SET status = 'applied',
+            applied_at = datetime('now')
+        WHERE id = ? AND status = 'paid'
+        `,
+        [billingRequest.id]
+      );
+    });
 
     const snapshot = await getUserPlanSnapshot(req.user.id);
     const availablePlans = listPlans();

@@ -55,6 +55,11 @@ export function errorHandler(err, req, res, next) {
       return;
     }
 
+    if (rawMessage.includes('INVALID_BILLING_STATE')) {
+      sendError(res, 400, 'INVALID_BILLING_STATE', 'Billing islem durumu gecersiz.');
+      return;
+    }
+
     if (rawMessage.includes('FOREIGN KEY')) {
       sendError(res, 400, 'FOREIGN_KEY_VIOLATION', 'Iliskili kayit bulunamadi.');
       return;
