@@ -34,4 +34,30 @@ describe('Health and Metrics API', () => {
     expect(response.body.metrics.topEndpoints.length).toBeGreaterThanOrEqual(1);
     expect(response.body.metrics.topEndpoints[0].endpoint).toMatch(/^GET /);
   });
+
+  test('protects metrics endpoint with internal token outside test mode', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousMetricsToken = process.env.METRICS_INTERNAL_TOKEN;
+
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.METRICS_INTERNAL_TOKEN = 'metrics-test-token';
+
+      const blocked = await request(app).get('/health/metrics');
+      expect(blocked.statusCode).toBe(403);
+      expect(blocked.body.success).toBe(false);
+      expect(blocked.body.error.code).toBe('FORBIDDEN');
+
+      const allowed = await request(app).get('/health/metrics').set('x-metrics-token', 'metrics-test-token');
+      expect(allowed.statusCode).toBe(200);
+      expect(allowed.body.status).toBe('ok');
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousMetricsToken === undefined) {
+        delete process.env.METRICS_INTERNAL_TOKEN;
+      } else {
+        process.env.METRICS_INTERNAL_TOKEN = previousMetricsToken;
+      }
+    }
+  });
 });

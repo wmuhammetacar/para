@@ -2,6 +2,9 @@ import request from 'supertest';
 import app from '../src/app.js';
 import { registerAndLogin } from './helpers/auth.js';
 
+const BILLING_TEST_TOKEN = 'billing-test-token';
+process.env.BILLING_INTERNAL_TOKEN = BILLING_TEST_TOKEN;
+
 async function createCustomer(token, name = 'Musteri Test', overrides = {}) {
   const payload = {
     name,
@@ -289,10 +292,24 @@ describe('Dashboard API', () => {
     const patchResponse = await request(app)
       .patch('/api/dashboard/plan')
       .set('Authorization', `Bearer ${token}`)
+      .set('x-billing-token', BILLING_TEST_TOKEN)
       .send({ planCode: 'standard' });
 
     expect(patchResponse.statusCode).toBe(200);
     expect(patchResponse.body.currentPlan.code).toBe('standard');
     expect(patchResponse.body.usage.customers.limit).toBe(250);
+  });
+
+  test('rejects plan update when billing token missing', async () => {
+    const { token } = await registerAndLogin();
+
+    const patchResponse = await request(app)
+      .patch('/api/dashboard/plan')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ planCode: 'standard' });
+
+    expect(patchResponse.statusCode).toBe(403);
+    expect(patchResponse.body.success).toBe(false);
+    expect(patchResponse.body.error.code).toBe('FORBIDDEN');
   });
 });

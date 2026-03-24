@@ -160,4 +160,35 @@ describe('Quotes API', () => {
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
+
+  test('rejects duplicate custom quote number for same user', async () => {
+    const { token } = await registerAndLogin();
+    const customer = await createCustomer(token);
+
+    const first = await request(app)
+      .post('/api/quotes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        quoteNumber: 'TKL-SECURE-001',
+        date: '2026-03-22',
+        items: [{ name: 'Kalem A', quantity: 1, unitPrice: 100 }]
+      });
+
+    expect(first.statusCode).toBe(201);
+
+    const second = await request(app)
+      .post('/api/quotes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        quoteNumber: 'TKL-SECURE-001',
+        date: '2026-03-23',
+        items: [{ name: 'Kalem B', quantity: 1, unitPrice: 200 }]
+      });
+
+    expect(second.statusCode).toBe(409);
+    expect(second.body.success).toBe(false);
+    expect(second.body.error.code).toBe('CONFLICT');
+  });
 });

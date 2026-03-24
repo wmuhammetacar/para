@@ -7,7 +7,14 @@ async function seed() {
   await initDb();
 
   const demoEmail = 'demo@teklifim.com';
-  const demoPassword = '123456';
+  const demoPassword = typeof process.env.DEMO_PASSWORD === 'string' ? process.env.DEMO_PASSWORD.trim() : '';
+
+  if (!demoPassword) {
+    // eslint-disable-next-line no-console
+    console.log('DEMO_PASSWORD tanimli olmadigi icin demo kullanici olusturulmayacak.');
+    await closeDb();
+    return;
+  }
 
   let user = await get('SELECT * FROM users WHERE email = ?', [demoEmail]);
 
@@ -27,7 +34,7 @@ async function seed() {
 
   if (existingCustomers.length && existingQuotes.length && existingInvoices.length) {
     // eslint-disable-next-line no-console
-    console.log('Seed data zaten var. Demo kullanici: demo@teklifim.com / 123456');
+    console.log('Seed data zaten var. Demo kullanici e-postasi: demo@teklifim.com');
     await closeDb();
     return;
   }
@@ -165,7 +172,7 @@ async function seed() {
   );
 
   // eslint-disable-next-line no-console
-  console.log('Seed tamamlandi. Demo kullanici: demo@teklifim.com / 123456');
+  console.log('Seed tamamlandi. Demo kullanici e-postasi: demo@teklifim.com');
 
   await closeDb();
 }

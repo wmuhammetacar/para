@@ -1,7 +1,8 @@
 import request from 'supertest';
 import app from '../src/app.js';
-import { all } from '../src/db.js';
+import { all, run } from '../src/db.js';
 import { registerAndLogin } from './helpers/auth.js';
+import { purgeOldAuditLogs, recordAuditLog } from '../src/utils/audit.js';
 
 describe('Audit Logs', () => {
   test('records auth success and failure events', async () => {
@@ -143,5 +144,88 @@ describe('Audit Logs', () => {
 
     const eventTypes = logs.map((log) => log.event_type);
     expect(eventTypes).toContain('AUTH_ACCOUNT_LOCKED');
+  });
+
+  test('masks sensitive metadata fields in audit logs', async () => {
+    const email = `mask-${Date.now()}@teklifim.local`;
+    const password = 'Strong123';
+
+    const registerResponse = await request(app).post('/api/auth/register').send({
+      email,
+      password,
+      companyName: 'Audit Mask'
+    });
+
+    expect(registerResponse.statusCode).toBe(201);
+
+    const rows = await all(
+      `
+      SELECT metadata_json
+      FROM audit_logs
+      WHERE event_type = 'AUTH_REGISTER_SUCCESS'
+      ORDER BY id DESC
+      LIMIT 1
+      `
+    );
+
+    const metadata = JSON.parse(rows[0].metadata_json);
+    expect(metadata.email).toContain('***@');
+    expect(metadata.email).not.toBe(email);
+  });
+
+  test('masks recipient and token fields in nested metadata', async () => {
+    const { user } = await registerAndLogin();
+
+    await recordAuditLog({
+      req: {
+        requestId: 'audit-mask-test',
+        ip: '127.0.0.1',
+        headers: { 'user-agent': 'jest' }
+      },
+      userId: user.id,
+      eventType: 'AUDIT_MASK_TEST',
+      resourceType: 'audit',
+      metadata: {
+        recipient: '+90 555 123 4567',
+        apiToken: 'secret-token-value',
+        nested: {
+          contactPhone: '0555 888 9999',
+          supportEmail: 'support@teklifim.local'
+        }
+      }
+    });
+
+    const rows = await all(
+      `
+      SELECT metadata_json
+      FROM audit_logs
+      WHERE event_type = 'AUDIT_MASK_TEST'
+      ORDER BY id DESC
+      LIMIT 1
+      `
+    );
+
+    const metadata = JSON.parse(rows[0].metadata_json);
+    expect(metadata.recipient).toContain('*');
+    expect(metadata.recipient).not.toContain('1234567');
+    expect(metadata.apiToken).toBe('[REDACTED]');
+    expect(metadata.nested.contactPhone).toContain('*');
+    expect(metadata.nested.supportEmail).toContain('***@');
+    expect(metadata.nested.supportEmail).not.toBe('support@teklifim.local');
+  });
+
+  test('purges old audit logs based on retention policy', async () => {
+    await run(
+      `
+      INSERT INTO audit_logs (event_type, created_at)
+      VALUES ('LEGACY_EVENT', '2000-01-01 00:00:00')
+      `
+    );
+
+    const result = await purgeOldAuditLogs(30);
+    expect(result.deleted).toBeGreaterThanOrEqual(1);
+
+    const rows = await all(`SELECT event_type FROM audit_logs WHERE event_type = 'LEGACY_EVENT'`);
+    expect(rows).toHaveLength(0);
   });
 });

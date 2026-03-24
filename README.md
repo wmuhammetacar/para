@@ -109,16 +109,16 @@ teklifim/
 cd backend
 npm install
 cp .env.example .env
-npm run seed
+DEMO_PASSWORD=Strong123 npm run seed
 npm run dev
 ```
 
 Backend default URL: `http://localhost:4000`
 
-Demo user:
+Demo user (opsiyonel, seed sirasinda olusturulur):
 
 - Email: `demo@teklifim.com`
-- Password: `123456`
+- Password: `DEMO_PASSWORD` env degeri
 
 Demo verilerini temizlemek icin:
 
@@ -136,6 +136,17 @@ Backend `.env` icin kritik degiskenler:
 - `COMPANY_ADDRESS` (opsiyonel, PDF footer/header icin)
 - `COMPANY_TAX_NUMBER` (opsiyonel, PDF footer icin)
 - `CORS_ORIGIN` (ornek: `http://localhost:5173,http://127.0.0.1:5173`)
+- `BILLING_INTERNAL_TOKEN` (`PATCH /dashboard/plan` icin zorunlu billing yetki anahtari)
+- `METRICS_INTERNAL_TOKEN` (`GET /health/metrics` icin zorunlu internal erisim anahtari)
+- `TRUST_PROXY` (`true/1` ise audit loglarinda `x-forwarded-for` trusted kabul edilir)
+- `ABUSE_WRITE_RATE_LIMIT_WINDOW_MS`
+- `ABUSE_WRITE_RATE_LIMIT_MAX`
+- `ABUSE_PDF_RATE_LIMIT_WINDOW_MS`
+- `ABUSE_PDF_RATE_LIMIT_MAX`
+- `ABUSE_REMINDER_RATE_LIMIT_WINDOW_MS`
+- `ABUSE_REMINDER_RATE_LIMIT_MAX`
+- `AUDIT_LOG_RETENTION_DAYS`
+- `AUDIT_PURGE_INTERVAL_MS`
 - `AUTH_RATE_LIMIT_WINDOW_MS`
 - `AUTH_RATE_LIMIT_MAX`
 - `AUTH_LOGIN_MAX_FAILED_ATTEMPTS` (opsiyonel, varsayilan: `5`)
@@ -167,6 +178,7 @@ cd backend
 npm run check:syntax
 npm test
 npm run test:coverage
+npm run purge:audit
 npm run perf:benchmark
 npm run dr:drill
 npm run smoke:api
@@ -221,12 +233,14 @@ Base URL: `http://localhost:4000/api`
 - `GET /dashboard/activation`
 - `GET /dashboard/plan`
 - `PATCH /dashboard/plan`
+  - Bu endpoint guvenlik nedeniyle `x-billing-token: <BILLING_INTERNAL_TOKEN>` header'i ister.
 - `GET /dashboard/pilot-readiness?period=7..90`
 
 ### Health
 
 - `GET /health`
 - `GET /health/metrics`
+  - Bu endpoint guvenlik nedeniyle `x-metrics-token: <METRICS_INTERNAL_TOKEN>` header'i ister.
 ### Customers
 
 - `GET /customers`
@@ -334,9 +348,11 @@ Base URL: `http://localhost:4000/api`
 - All protected endpoints require `Authorization: Bearer <token>`.
 - PDF output includes company name, customer info, item table, total, and date with a corporate layout template.
 - Auth endpointlerinde temel brute-force korumasi icin rate limit vardir.
+- Auth disindaki protected write/pdf/reminder endpointlerinde de abuse rate limit vardir.
 - Login endpointinde hesap bazli gecici kilitleme vardir (ardisik hatali deneme limiti asildiginda).
 - Tum API response'larinda `X-Request-Id` header'i doner.
 - Kritik is aksiyonlari (`auth`, `customer`, `quote`, `invoice`) `audit_logs` tablosuna yazilir.
+- Audit metadata alaninda e-posta/payload hassas alanlari maskelenir; eski audit kayitlari retention politikasina gore temizlenir.
 - Monitoring icin `/health/metrics` endpointi mevcuttur.
 - Customer API temel format/uzunluk dogrulamasi uygular (name, phone, email, address).
 - Register API sifre politikasi uygular: 8-72 karakter, en az bir buyuk harf, bir kucuk harf ve bir rakam.

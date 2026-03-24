@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import PlansPage from '../PlansPage';
@@ -72,9 +71,7 @@ describe('PlansPage', () => {
     });
   });
 
-  test('loads plans and allows switching package', async () => {
-    const user = userEvent.setup();
-
+  test('loads plans and keeps package change as support-only flow', async () => {
     render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PlansPage />
@@ -84,18 +81,11 @@ describe('PlansPage', () => {
     expect(await screen.findByText('Paketler ve Kullanim')).toBeInTheDocument();
     expect(await screen.findByText('Baslangic')).toBeInTheDocument();
     expect(await screen.findByText('Standart')).toBeInTheDocument();
+    expect(await screen.findByText(/billing\/destek ekibi/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Bu Pakete Gec' }));
+    expect(screen.getByRole('button', { name: 'Destek Ile Gec' })).toBeDisabled();
 
-    await waitFor(() => {
-      expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/plan', {
-        method: 'PATCH',
-        token: 'test-token',
-        body: { planCode: 'standard' }
-      });
-    });
-
-    expect(await screen.findByText(/guncellendi/i)).toBeInTheDocument();
-    expect(authState.updateUser).toHaveBeenCalled();
+    expect(apiRequestMock).toHaveBeenCalledTimes(1);
+    expect(authState.updateUser).not.toHaveBeenCalled();
   });
 });

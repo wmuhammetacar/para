@@ -17,13 +17,96 @@ function toNullableTrimmedString(value, maxLength) {
   return trimmed.slice(0, maxLength);
 }
 
-function resolveIpAddress(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    const first = forwarded.split(',')[0]?.trim();
-    return toNullableTrimmedString(first, 100);
+function maskEmail(value) {
+  const text = String(value || '').trim();
+  const atIndex = text.indexOf('@');
+  if (atIndex <= 1) {
+    return '***';
   }
 
+  const first = text.slice(0, 1);
+  const domain = text.slice(atIndex);
+  return `${first}***${domain}`;
+}
+
+function maskPhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) {
+    return '***';
+  }
+
+  if (digits.length <= 4) {
+    return `${'*'.repeat(Math.max(1, digits.length - 1))}${digits.slice(-1)}`;
+  }
+
+  return `${digits.slice(0, 2)}${'*'.repeat(Math.max(2, digits.length - 4))}${digits.slice(-2)}`;
+}
+
+function looksLikeEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function looksLikePhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits.length >= 10;
+}
+
+function maskByContext(value, parentKey) {
+  const key = parentKey.toLowerCase();
+  const text = String(value || '');
+
+  if (key.includes('password') || key.includes('token') || key.includes('secret')) {
+    return '[REDACTED]';
+  }
+
+  if (key.includes('email') || looksLikeEmail(text)) {
+    return maskEmail(text);
+  }
+
+  if (
+    key.includes('phone') ||
+    key.includes('recipient') ||
+    key.includes('contact') ||
+    (key.includes('to') && looksLikePhone(text))
+  ) {
+    return maskPhone(text);
+  }
+
+  return text;
+}
+
+function sanitizeMetadata(metadata, parentKey = '') {
+  if (metadata === null || metadata === undefined) {
+    return metadata;
+  }
+
+  if (Array.isArray(metadata)) {
+    return metadata.map((item) => sanitizeMetadata(item, parentKey));
+  }
+
+  if (typeof metadata !== 'object') {
+    if (typeof metadata !== 'string') {
+      return metadata;
+    }
+
+    return maskByContext(metadata, parentKey);
+  }
+
+  const redacted = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    const normalizedKey = key.toLowerCase();
+    if (normalizedKey.includes('password') || normalizedKey.includes('token') || normalizedKey.includes('secret')) {
+      redacted[key] = '[REDACTED]';
+      continue;
+    }
+
+    redacted[key] = sanitizeMetadata(value, normalizedKey);
+  }
+
+  return redacted;
+}
+
+function resolveIpAddress(req) {
   return toNullableTrimmedString(req.ip || req.socket?.remoteAddress, 100);
 }
 
@@ -33,7 +116,8 @@ function stringifyMetadata(metadata) {
   }
 
   try {
-    const json = JSON.stringify(metadata);
+    const sanitized = sanitizeMetadata(metadata);
+    const json = JSON.stringify(sanitized);
     if (!json || json === '{}') {
       return null;
     }
@@ -42,6 +126,27 @@ function stringifyMetadata(metadata) {
   } catch {
     return null;
   }
+}
+
+function normalizeRetentionDays(value, fallback = 90) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export async function purgeOldAuditLogs(retentionDays = process.env.AUDIT_LOG_RETENTION_DAYS) {
+  const safeRetentionDays = normalizeRetentionDays(retentionDays, 90);
+  const result = await run(
+    `
+    DELETE FROM audit_logs
+    WHERE datetime(created_at) < datetime('now', ?)
+    `,
+    [`-${safeRetentionDays} day`]
+  );
+
+  return {
+    retentionDays: safeRetentionDays,
+    deleted: Number(result?.changes) || 0
+  };
 }
 
 export async function recordAuditLog({

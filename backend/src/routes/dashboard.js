@@ -1,13 +1,33 @@
 import { Router } from 'express';
 import { all, get, run } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
 import { recordAuditLog } from '../utils/audit.js';
-import { badRequest } from '../utils/httpErrors.js';
+import { badRequest, forbidden } from '../utils/httpErrors.js';
 import { getUserPlanSnapshot, listPlans, normalizePlanCode } from '../utils/plans.js';
 
 const router = Router();
 
 router.use(authenticate);
+router.use(abuseRateLimit);
+
+function assertBillingAuthorized(req) {
+  const billingInternalToken = typeof process.env.BILLING_INTERNAL_TOKEN === 'string'
+    ? process.env.BILLING_INTERNAL_TOKEN.trim()
+    : '';
+
+  if (!billingInternalToken) {
+    throw forbidden('Plan degisikligi devre disi. Lutfen destek ekibi ile iletisime gecin.');
+  }
+
+  const billingToken = typeof req.headers['x-billing-token'] === 'string'
+    ? req.headers['x-billing-token'].trim()
+    : '';
+
+  if (!billingToken || billingToken !== billingInternalToken) {
+    throw forbidden('Bu islem yalnizca yetkili billing akisiyla yapilabilir.');
+  }
+}
 
 function isoDateOffset(days) {
   const date = new Date();
@@ -982,6 +1002,7 @@ router.get('/plan', async (req, res, next) => {
 
 router.patch('/plan', async (req, res, next) => {
   try {
+    assertBillingAuthorized(req);
     const planCode = normalizePlanPatch(req.body.planCode);
     const existing = await get('SELECT id, plan_code FROM users WHERE id = ?', [req.user.id]);
     if (!existing) {

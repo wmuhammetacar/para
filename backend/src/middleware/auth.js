@@ -10,9 +10,15 @@ export function authenticate(req, res, next) {
   }
 
   const token = authHeader.slice(7);
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    sendError(res, 500, 'CONFIG_ERROR', 'JWT ayari eksik.');
+    return;
+  }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
+    const payload = jwt.verify(token, jwtSecret);
     req.user = payload;
     next();
   } catch (error) {

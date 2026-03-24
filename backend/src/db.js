@@ -22,6 +22,7 @@ function resolveDbPath() {
 
 const dbPath = resolveDbPath();
 export const db = new sqlite3.Database(dbPath);
+let transactionQueue = Promise.resolve();
 
 export function run(sql, params = []) {
   return new Promise((resolve, reject) => {
@@ -62,6 +63,33 @@ export function all(sql, params = []) {
   });
 }
 
+async function executeTransaction(task, mode = 'IMMEDIATE') {
+  const normalizedMode = ['DEFERRED', 'IMMEDIATE', 'EXCLUSIVE'].includes(mode) ? mode : 'IMMEDIATE';
+  await run(`BEGIN ${normalizedMode}`);
+
+  try {
+    const result = await task();
+    await run('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await run('ROLLBACK');
+    } catch (rollbackError) {
+      // eslint-disable-next-line no-console
+      console.error('Rollback failed:', rollbackError);
+    }
+    throw error;
+  }
+}
+
+export function withDbTransaction(task, options = {}) {
+  const { mode = 'IMMEDIATE' } = options;
+  const runTask = () => executeTransaction(task, mode);
+  const resultPromise = transactionQueue.then(runTask, runTask);
+  transactionQueue = resultPromise.catch(() => {});
+  return resultPromise;
+}
+
 async function hasColumn(tableName, columnName) {
   const columns = await all(`PRAGMA table_info(${tableName})`);
   return columns.some((column) => column.name === columnName);
@@ -74,6 +102,292 @@ async function ensureColumn(tableName, columnName, definition) {
   }
 
   await run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+}
+
+function normalizeDocumentNumberForDb(value, prefix, id) {
+  const fallback = `${prefix}-${String(id).padStart(4, '0')}`;
+  const raw = String(value || '').trim().toUpperCase();
+  const normalized = raw
+    .replace(/[^A-Z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+  return normalized || fallback;
+}
+
+async function deduplicateDocumentNumbers(tableName, columnName, prefix) {
+  const rows = await all(
+    `
+    SELECT id, user_id, ${columnName} AS document_number
+    FROM ${tableName}
+    ORDER BY user_id ASC, id ASC
+    `
+  );
+
+  const seen = new Set();
+
+  for (const row of rows) {
+    const baseValue = normalizeDocumentNumberForDb(row.document_number, prefix, row.id);
+    let candidate = baseValue;
+    let key = `${row.user_id}:${candidate}`;
+
+    while (seen.has(key)) {
+      const suffix = `-${row.id}`;
+      const sliced = baseValue.slice(0, Math.max(1, 40 - suffix.length));
+      candidate = `${sliced}${suffix}`;
+      key = `${row.user_id}:${candidate}`;
+    }
+
+    seen.add(key);
+
+    if (candidate !== row.document_number) {
+      await run(`UPDATE ${tableName} SET ${columnName} = ? WHERE id = ?`, [candidate, row.id]);
+    }
+  }
+}
+
+async function createIntegrityTriggers() {
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_quotes_customer_scope_insert
+    BEFORE INSERT ON quotes
+    FOR EACH ROW
+    WHEN NEW.customer_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM customers c WHERE c.id = NEW.customer_id AND c.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_quotes_customer_scope_update
+    BEFORE UPDATE OF customer_id, user_id ON quotes
+    FOR EACH ROW
+    WHEN NEW.customer_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM customers c WHERE c.id = NEW.customer_id AND c.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_quotes_total_insert
+    BEFORE INSERT ON quotes
+    FOR EACH ROW
+    WHEN NEW.total < 0
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_MONETARY_VALUE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_quotes_total_update
+    BEFORE UPDATE OF total ON quotes
+    FOR EACH ROW
+    WHEN NEW.total < 0
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_MONETARY_VALUE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_customer_scope_insert
+    BEFORE INSERT ON invoices
+    FOR EACH ROW
+    WHEN NEW.customer_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM customers c WHERE c.id = NEW.customer_id AND c.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_customer_scope_update
+    BEFORE UPDATE OF customer_id, user_id ON invoices
+    FOR EACH ROW
+    WHEN NEW.customer_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM customers c WHERE c.id = NEW.customer_id AND c.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_quote_scope_insert
+    BEFORE INSERT ON invoices
+    FOR EACH ROW
+    WHEN NEW.quote_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM quotes q WHERE q.id = NEW.quote_id AND q.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_quote_scope_update
+    BEFORE UPDATE OF quote_id, user_id ON invoices
+    FOR EACH ROW
+    WHEN NEW.quote_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM quotes q WHERE q.id = NEW.quote_id AND q.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_total_insert
+    BEFORE INSERT ON invoices
+    FOR EACH ROW
+    WHEN NEW.total < 0
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_MONETARY_VALUE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_total_update
+    BEFORE UPDATE OF total ON invoices
+    FOR EACH ROW
+    WHEN NEW.total < 0
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_MONETARY_VALUE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_payment_insert
+    BEFORE INSERT ON invoices
+    FOR EACH ROW
+    WHEN NEW.payment_status NOT IN ('pending', 'paid')
+      OR (NEW.payment_status = 'pending' AND NEW.paid_at IS NOT NULL)
+      OR (NEW.payment_status = 'paid' AND (NEW.paid_at IS NULL OR TRIM(NEW.paid_at) = ''))
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_PAYMENT_STATE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_invoices_payment_update
+    BEFORE UPDATE OF payment_status, paid_at ON invoices
+    FOR EACH ROW
+    WHEN NEW.payment_status NOT IN ('pending', 'paid')
+      OR (NEW.payment_status = 'pending' AND NEW.paid_at IS NOT NULL)
+      OR (NEW.payment_status = 'paid' AND (NEW.paid_at IS NULL OR TRIM(NEW.paid_at) = ''))
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_PAYMENT_STATE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_parent_insert
+    BEFORE INSERT ON items
+    FOR EACH ROW
+    WHEN (NEW.quote_id IS NULL AND NEW.invoice_id IS NULL)
+      OR (NEW.quote_id IS NOT NULL AND NEW.invoice_id IS NOT NULL)
+    BEGIN
+      SELECT RAISE(ABORT, 'ITEM_PARENT_INVALID');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_parent_update
+    BEFORE UPDATE OF quote_id, invoice_id, user_id ON items
+    FOR EACH ROW
+    WHEN (NEW.quote_id IS NULL AND NEW.invoice_id IS NULL)
+      OR (NEW.quote_id IS NOT NULL AND NEW.invoice_id IS NOT NULL)
+    BEGIN
+      SELECT RAISE(ABORT, 'ITEM_PARENT_INVALID');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_quote_scope_insert
+    BEFORE INSERT ON items
+    FOR EACH ROW
+    WHEN NEW.quote_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM quotes q WHERE q.id = NEW.quote_id AND q.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_quote_scope_update
+    BEFORE UPDATE OF quote_id, user_id ON items
+    FOR EACH ROW
+    WHEN NEW.quote_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM quotes q WHERE q.id = NEW.quote_id AND q.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_invoice_scope_insert
+    BEFORE INSERT ON items
+    FOR EACH ROW
+    WHEN NEW.invoice_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM invoices i WHERE i.id = NEW.invoice_id AND i.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_invoice_scope_update
+    BEFORE UPDATE OF invoice_id, user_id ON items
+    FOR EACH ROW
+    WHEN NEW.invoice_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM invoices i WHERE i.id = NEW.invoice_id AND i.user_id = NEW.user_id
+      )
+    BEGIN
+      SELECT RAISE(ABORT, 'TENANT_SCOPE_VIOLATION');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_monetary_insert
+    BEFORE INSERT ON items
+    FOR EACH ROW
+    WHEN NEW.quantity <= 0
+      OR NEW.unit_price < 0
+      OR NEW.total < 0
+      OR ABS(NEW.total - ROUND(NEW.quantity * NEW.unit_price, 2)) > 0.009
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_MONETARY_VALUE');
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS trg_items_monetary_update
+    BEFORE UPDATE OF quantity, unit_price, total ON items
+    FOR EACH ROW
+    WHEN NEW.quantity <= 0
+      OR NEW.unit_price < 0
+      OR NEW.total < 0
+      OR ABS(NEW.total - ROUND(NEW.quantity * NEW.unit_price, 2)) > 0.009
+    BEGIN
+      SELECT RAISE(ABORT, 'INVALID_MONETARY_VALUE');
+    END;
+  `);
 }
 
 export async function initDb() {
@@ -163,6 +477,9 @@ export async function initDb() {
   `);
   await run(`UPDATE invoices SET paid_at = NULL WHERE payment_status <> 'paid'`);
 
+  await deduplicateDocumentNumbers('quotes', 'quote_number', 'TKL');
+  await deduplicateDocumentNumbers('invoices', 'invoice_number', 'FTR');
+
   await run(`
     CREATE TABLE IF NOT EXISTS items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -245,13 +562,17 @@ export async function initDb() {
     WHERE retry_count IS NULL OR retry_count < 0
   `);
 
+  await createIntegrityTriggers();
+
   await run('CREATE INDEX IF NOT EXISTS idx_customers_user_id ON customers(user_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_customers_user_name ON customers(user_id, name)');
   await run('CREATE INDEX IF NOT EXISTS idx_quotes_user_id ON quotes(user_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_quotes_user_quote_number ON quotes(user_id, quote_number)');
+  await run('CREATE UNIQUE INDEX IF NOT EXISTS idx_quotes_user_quote_number_uq ON quotes(user_id, quote_number)');
   await run('CREATE INDEX IF NOT EXISTS idx_quotes_user_date ON quotes(user_id, date)');
   await run('CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id)');
   await run('CREATE INDEX IF NOT EXISTS idx_invoices_user_invoice_number ON invoices(user_id, invoice_number)');
+  await run('CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_user_invoice_number_uq ON invoices(user_id, invoice_number)');
   await run('CREATE INDEX IF NOT EXISTS idx_invoices_user_date ON invoices(user_id, date)');
   await run('CREATE INDEX IF NOT EXISTS idx_invoices_user_status_due ON invoices(user_id, payment_status, due_date)');
   await run('CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(due_date)');

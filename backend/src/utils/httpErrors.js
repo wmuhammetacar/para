@@ -15,6 +15,10 @@ export function unauthorized(message = 'Yetkisiz islem.', code = 'UNAUTHORIZED')
   return makeError(401, code, message);
 }
 
+export function forbidden(message = 'Bu islem icin yetkiniz yok.') {
+  return makeError(403, 'FORBIDDEN', message);
+}
+
 export function locked(message = 'Hesap gecici olarak kilitli.', code = 'AUTH_LOCKED') {
   return makeError(423, code, message);
 }

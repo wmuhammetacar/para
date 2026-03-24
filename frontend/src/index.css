@@ -125,6 +125,13 @@ button {
   color: #a01e1e;
 }
 
+.status-warning {
+  @apply rounded-xl border px-3 py-2 text-sm font-medium shadow-sm;
+  border-color: #f4d8a8;
+  background: #fff9ec;
+  color: #9a5a06;
+}
+
 .chip {
   @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
   background: #e9efff;

@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { all, get, run } from '../db.js';
+import { all, get, run, withDbTransaction } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
 import { buildDefaultReminderMessage, processReminderQueue } from '../services/reminderQueue.js';
 import { recordAuditLog } from '../utils/audit.js';
-import { buildDocumentNumber, normalizeDate, sanitizeItems } from '../utils/documents.js';
-import { badRequest, notFound } from '../utils/httpErrors.js';
+import { buildDocumentNumber, normalizeDate, normalizeDocumentNumber, sanitizeItems } from '../utils/documents.js';
+import { badRequest, conflict, notFound } from '../utils/httpErrors.js';
 import { assertPlanLimit } from '../utils/plans.js';
 import { writeDocumentPdf } from '../utils/pdf.js';
 
@@ -30,25 +31,33 @@ const REMINDER_RETRY_BACKOFF_MINUTES = typeof process.env.REMINDER_RETRY_BACKOFF
   : [];
 
 router.use(authenticate);
-
-async function withTransaction(task) {
-  await run('BEGIN');
-
-  try {
-    const result = await task();
-    await run('COMMIT');
-    return result;
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
-}
+router.use(abuseRateLimit);
 
 async function findCustomer(userId, customerId) {
   return get('SELECT id, name, phone, email, address FROM customers WHERE id = ? AND user_id = ?', [
     customerId,
     userId
   ]);
+}
+
+async function assertUniqueInvoiceNumber(userId, invoiceNumber, excludeId = null) {
+  if (!invoiceNumber) {
+    return;
+  }
+
+  const duplicate = await get(
+    `
+    SELECT id
+    FROM invoices
+    WHERE user_id = ? AND invoice_number = ? AND (? IS NULL OR id <> ?)
+    LIMIT 1
+    `,
+    [userId, invoiceNumber, excludeId, excludeId]
+  );
+
+  if (duplicate) {
+    throw conflict('Bu fatura numarasi zaten kullanimda.');
+  }
 }
 
 function normalizePaymentStatus(value, field = 'paymentStatus') {
@@ -651,11 +660,11 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    await assertPlanLimit(req.user.id, 'invoice_create');
     const date = normalizeDate(req.body.date);
     const dueDate = normalizeDate(req.body.dueDate || date);
     const paymentStatus = normalizePaymentStatus(req.body.paymentStatus);
     const paidAt = paymentStatus === 'paid' ? normalizeDate(req.body.paidAt || date) : null;
+    const requestedInvoiceNumber = normalizeDocumentNumber(req.body.invoiceNumber, 'invoiceNumber');
     const quoteId = req.body.quoteId ? Number(req.body.quoteId) : null;
 
     let customerId = null;
@@ -692,15 +701,13 @@ router.post('/', async (req, res, next) => {
       }
 
       customerId = quote.customer_id;
-      itemResult = {
-        items: quoteItems.map((item) => ({
+      itemResult = sanitizeItems(
+        quoteItems.map((item) => ({
           name: item.name,
           quantity: Number(item.quantity),
-          unitPrice: Number(item.unit_price),
-          total: Number(item.total)
-        })),
-        total: Number(quoteItems.reduce((acc, item) => acc + Number(item.total), 0).toFixed(2))
-      };
+          unitPrice: Number(item.unit_price)
+        }))
+      );
     } else {
       customerId = Number(req.body.customerId);
 
@@ -719,7 +726,8 @@ router.post('/', async (req, res, next) => {
       return;
     }
 
-    const created = await withTransaction(async () => {
+    const created = await withDbTransaction(async () => {
+      await assertPlanLimit(req.user.id, 'invoice_create');
       const insertInvoice = await run(
         `
         INSERT INTO invoices (
@@ -739,9 +747,11 @@ router.post('/', async (req, res, next) => {
       );
 
       const invoiceNumber =
-        typeof req.body.invoiceNumber === 'string' && req.body.invoiceNumber.trim()
-          ? req.body.invoiceNumber.trim()
+        requestedInvoiceNumber
+          ? requestedInvoiceNumber
           : buildDocumentNumber('FTR', insertInvoice.id, date);
+
+      await assertUniqueInvoiceNumber(req.user.id, invoiceNumber, insertInvoice.id);
 
       await run('UPDATE invoices SET invoice_number = ? WHERE id = ? AND user_id = ?', [
         invoiceNumber,
@@ -1006,7 +1016,6 @@ router.get('/:id/reminders', async (req, res, next) => {
 
 router.post('/:id/reminders', async (req, res, next) => {
   try {
-    await assertPlanLimit(req.user.id, 'reminder_create');
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
@@ -1043,15 +1052,19 @@ router.post('/:id/reminders', async (req, res, next) => {
     });
     const message = normalizeReminderMessage(req.body.message, fallbackMessage);
 
-    const createdReminder = await run(
-      `
-      INSERT INTO reminder_jobs (user_id, invoice_id, channel, recipient, message, status)
-      VALUES (?, ?, ?, ?, ?, 'queued')
-      `,
-      [req.user.id, id, channel, recipient, message]
-    );
+    const createdReminderId = await withDbTransaction(async () => {
+      await assertPlanLimit(req.user.id, 'reminder_create');
+      const createdReminder = await run(
+        `
+        INSERT INTO reminder_jobs (user_id, invoice_id, channel, recipient, message, status)
+        VALUES (?, ?, ?, ?, ?, 'queued')
+        `,
+        [req.user.id, id, channel, recipient, message]
+      );
+      return createdReminder.id;
+    });
 
-    await processReminderQueue({ onlyJobId: createdReminder.id, limit: 1 });
+    await processReminderQueue({ onlyJobId: createdReminderId, limit: 1 });
 
     const reminder = await get(
       `
@@ -1072,7 +1085,7 @@ router.post('/:id/reminders', async (req, res, next) => {
       FROM reminder_jobs
       WHERE id = ? AND user_id = ?
       `,
-      [createdReminder.id, req.user.id]
+      [createdReminderId, req.user.id]
     );
 
     await recordAuditLog({
@@ -1082,7 +1095,7 @@ router.post('/:id/reminders', async (req, res, next) => {
       resourceType: 'invoice',
       resourceId: String(id),
       metadata: {
-        reminderId: reminder?.id || createdReminder.id,
+        reminderId: reminder?.id || createdReminderId,
         channel: reminder?.channel || channel,
         status: reminder?.status || 'queued',
         retryCount: reminder?.retry_count ?? 0
@@ -1192,16 +1205,19 @@ router.put('/:id', async (req, res, next) => {
 
     const dueDate = normalizeDate(req.body.dueDate || existing.due_date || date);
     const paymentStatus = normalizePaymentStatus(req.body.paymentStatus ?? existing.payment_status);
+    const requestedInvoiceNumber = normalizeDocumentNumber(req.body.invoiceNumber, 'invoiceNumber');
     const paidAt =
       paymentStatus === 'paid'
         ? normalizeDate(req.body.paidAt || existing.paid_at || date)
         : null;
 
-    await withTransaction(async () => {
+    await withDbTransaction(async () => {
       const invoiceNumber =
-        typeof req.body.invoiceNumber === 'string' && req.body.invoiceNumber.trim()
-          ? req.body.invoiceNumber.trim()
+        requestedInvoiceNumber
+          ? requestedInvoiceNumber
           : existing.invoice_number;
+
+      await assertUniqueInvoiceNumber(req.user.id, invoiceNumber, id);
 
       await run(
         `
@@ -1308,7 +1324,7 @@ router.delete('/:id', async (req, res, next) => {
       return;
     }
 
-    await withTransaction(async () => {
+    await withDbTransaction(async () => {
       await run('DELETE FROM items WHERE invoice_id = ? AND user_id = ?', [id, req.user.id]);
       await run('DELETE FROM invoices WHERE id = ? AND user_id = ?', [id, req.user.id]);
     });

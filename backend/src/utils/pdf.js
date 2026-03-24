@@ -25,6 +25,22 @@ function formatCurrency(value) {
   }).format(Number(value) || 0);
 }
 
+function sanitizeFilename(value) {
+  const fallback = 'belge';
+  const raw = String(value || '').replace(/[\r\n"]/g, '').trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  const safe = raw
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 80);
+
+  return safe || fallback;
+}
+
 function normalizeItems(items = []) {
   return items.map((item) => {
     const quantity = Number(item.quantity) || 0;
@@ -409,7 +425,7 @@ export function writeDocumentPdf(res, payload) {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader(
     'Content-Disposition',
-    `attachment; filename="${safePayload.documentNumber || safePayload.documentType}.pdf"`
+    `attachment; filename="${sanitizeFilename(safePayload.documentNumber || safePayload.documentType)}.pdf"`
   );
 
   doc.info = {

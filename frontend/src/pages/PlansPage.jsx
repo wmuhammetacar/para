@@ -41,11 +41,9 @@ function resolveUsageRows(usage) {
 }
 
 export default function PlansPage() {
-  const { token, user, updateUser } = useAuth();
+  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [savingPlanCode, setSavingPlanCode] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [planState, setPlanState] = useState(emptyPlanState);
 
   async function fetchPlanSnapshot() {
@@ -64,37 +62,6 @@ export default function PlansPage() {
       setPlanState(emptyPlanState);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handlePlanChange(planCode) {
-    try {
-      setSavingPlanCode(planCode);
-      setError('');
-      setSuccess('');
-      const response = await apiRequest('/dashboard/plan', {
-        method: 'PATCH',
-        token,
-        body: { planCode }
-      });
-
-      setPlanState({
-        currentPlan: response?.currentPlan || null,
-        monthRange: response?.monthRange || null,
-        usage: response?.usage || {},
-        availablePlans: Array.isArray(response?.availablePlans) ? response.availablePlans : []
-      });
-
-      updateUser({
-        ...(user || {}),
-        planCode: response?.currentPlan?.code || planCode
-      });
-
-      setSuccess(`Paketiniz "${response?.currentPlan?.name || planCode}" olarak guncellendi.`);
-    } catch (saveError) {
-      setError(saveError.message);
-    } finally {
-      setSavingPlanCode('');
     }
   }
 
@@ -120,12 +87,13 @@ export default function PlansPage() {
       />
 
       {error ? <div className="status-error">{error}</div> : null}
-      {success ? <div className="status-success">{success}</div> : null}
+      <div className="status-warning">
+        Paket degisikligi guvenlik geregi dogrudan panelden yapilmaz. Lutfen billing/destek ekibi ile iletisime gecin.
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {(planState.availablePlans || []).map((plan) => {
           const isCurrent = planState.currentPlan?.code === plan.code;
-          const isSaving = savingPlanCode === plan.code;
 
           return (
             <div
@@ -157,10 +125,9 @@ export default function PlansPage() {
               <button
                 type="button"
                 className={isCurrent ? 'btn-secondary mt-4 w-full' : 'btn-primary mt-4 w-full'}
-                disabled={isCurrent || isSaving || Boolean(savingPlanCode)}
-                onClick={() => handlePlanChange(plan.code)}
+                disabled
               >
-                {isCurrent ? 'Mevcut Paket' : isSaving ? 'Gecis Yapiliyor...' : 'Bu Pakete Gec'}
+                {isCurrent ? 'Mevcut Paket' : 'Destek Ile Gec'}
               </button>
             </div>
           );

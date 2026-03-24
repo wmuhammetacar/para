@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { all, get, run } from '../db.js';
+import { all, get, run, withDbTransaction } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
 import { recordAuditLog } from '../utils/audit.js';
-import { buildDocumentNumber, normalizeDate, sanitizeItems } from '../utils/documents.js';
-import { badRequest, notFound } from '../utils/httpErrors.js';
+import { buildDocumentNumber, normalizeDate, normalizeDocumentNumber, sanitizeItems } from '../utils/documents.js';
+import { badRequest, conflict, notFound } from '../utils/httpErrors.js';
 import { assertPlanLimit } from '../utils/plans.js';
 import { writeDocumentPdf } from '../utils/pdf.js';
 
@@ -12,19 +13,7 @@ const DEFAULT_LIST_LIMIT = 20;
 const MAX_LIST_LIMIT = 100;
 
 router.use(authenticate);
-
-async function withTransaction(task) {
-  await run('BEGIN');
-
-  try {
-    const result = await task();
-    await run('COMMIT');
-    return result;
-  } catch (error) {
-    await run('ROLLBACK');
-    throw error;
-  }
-}
+router.use(abuseRateLimit);
 
 async function findCustomer(userId, customerId) {
   return get('SELECT id, name, phone, email, address FROM customers WHERE id = ? AND user_id = ?', [
@@ -68,6 +57,26 @@ async function getQuoteWithItems(userId, quoteId) {
   );
 
   return { ...quote, items };
+}
+
+async function assertUniqueQuoteNumber(userId, quoteNumber, excludeId = null) {
+  if (!quoteNumber) {
+    return;
+  }
+
+  const duplicate = await get(
+    `
+    SELECT id
+    FROM quotes
+    WHERE user_id = ? AND quote_number = ? AND (? IS NULL OR id <> ?)
+    LIMIT 1
+    `,
+    [userId, quoteNumber, excludeId, excludeId]
+  );
+
+  if (duplicate) {
+    throw conflict('Bu teklif numarasi zaten kullanimda.');
+  }
 }
 
 function normalizeListLimit(value) {
@@ -199,7 +208,6 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    await assertPlanLimit(req.user.id, 'quote_create');
     const customerId = Number(req.body.customerId);
 
     if (!Number.isInteger(customerId) || customerId <= 0) {
@@ -208,6 +216,7 @@ router.post('/', async (req, res, next) => {
     }
 
     const date = normalizeDate(req.body.date);
+    const requestedQuoteNumber = normalizeDocumentNumber(req.body.quoteNumber, 'quoteNumber');
     const itemResult = sanitizeItems(req.body.items);
 
     const customer = await findCustomer(req.user.id, customerId);
@@ -217,7 +226,8 @@ router.post('/', async (req, res, next) => {
       return;
     }
 
-    const created = await withTransaction(async () => {
+    const created = await withDbTransaction(async () => {
+      await assertPlanLimit(req.user.id, 'quote_create');
       const insertQuote = await run(
         `
         INSERT INTO quotes (user_id, customer_id, quote_number, date, total)
@@ -227,9 +237,11 @@ router.post('/', async (req, res, next) => {
       );
 
       const quoteNumber =
-        typeof req.body.quoteNumber === 'string' && req.body.quoteNumber.trim()
-          ? req.body.quoteNumber.trim()
+        requestedQuoteNumber
+          ? requestedQuoteNumber
           : buildDocumentNumber('TKL', insertQuote.id, date);
+
+      await assertUniqueQuoteNumber(req.user.id, quoteNumber, insertQuote.id);
 
       await run('UPDATE quotes SET quote_number = ? WHERE id = ? AND user_id = ?', [
         quoteNumber,
@@ -342,6 +354,7 @@ router.put('/:id', async (req, res, next) => {
     }
 
     const date = normalizeDate(req.body.date);
+    const requestedQuoteNumber = normalizeDocumentNumber(req.body.quoteNumber, 'quoteNumber');
     const itemResult = sanitizeItems(req.body.items);
 
     const existing = await get('SELECT id, quote_number FROM quotes WHERE id = ? AND user_id = ?', [
@@ -361,11 +374,13 @@ router.put('/:id', async (req, res, next) => {
       return;
     }
 
-    await withTransaction(async () => {
+    await withDbTransaction(async () => {
       const quoteNumber =
-        typeof req.body.quoteNumber === 'string' && req.body.quoteNumber.trim()
-          ? req.body.quoteNumber.trim()
+        requestedQuoteNumber
+          ? requestedQuoteNumber
           : existing.quote_number;
+
+      await assertUniqueQuoteNumber(req.user.id, quoteNumber, id);
 
       await run(
         `
@@ -424,7 +439,7 @@ router.delete('/:id', async (req, res, next) => {
       return;
     }
 
-    await withTransaction(async () => {
+    await withDbTransaction(async () => {
       await run('DELETE FROM items WHERE quote_id = ? AND user_id = ?', [id, req.user.id]);
       await run('DELETE FROM quotes WHERE id = ? AND user_id = ?', [id, req.user.id]);
     });

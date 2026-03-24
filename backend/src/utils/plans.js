@@ -90,6 +90,8 @@ async function getUserPlanCode(userId) {
 
 async function getUsageSnapshot(userId) {
   const monthRange = getMonthRange();
+  const monthStartDateTime = `${monthRange.from} 00:00:00`;
+  const monthEndDateTime = `${monthRange.to} 00:00:00`;
 
   const usage = await get(
     `
@@ -99,15 +101,15 @@ async function getUsageSnapshot(userId) {
         SELECT COUNT(*)
         FROM quotes
         WHERE user_id = ?
-          AND date(date) >= date(?)
-          AND date(date) < date(?)
+          AND datetime(created_at) >= datetime(?)
+          AND datetime(created_at) < datetime(?)
       ) AS quotes_month,
       (
         SELECT COUNT(*)
         FROM invoices
         WHERE user_id = ?
-          AND date(date) >= date(?)
-          AND date(date) < date(?)
+          AND datetime(created_at) >= datetime(?)
+          AND datetime(created_at) < datetime(?)
       ) AS invoices_month,
       (
         SELECT COUNT(*)
@@ -120,14 +122,14 @@ async function getUsageSnapshot(userId) {
     [
       userId,
       userId,
-      monthRange.from,
-      monthRange.to,
+      monthStartDateTime,
+      monthEndDateTime,
       userId,
-      monthRange.from,
-      monthRange.to,
+      monthStartDateTime,
+      monthEndDateTime,
       userId,
-      `${monthRange.from} 00:00:00`,
-      `${monthRange.to} 00:00:00`
+      monthStartDateTime,
+      monthEndDateTime
     ]
   );
 

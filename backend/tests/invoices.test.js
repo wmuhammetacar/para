@@ -73,6 +73,27 @@ describe('Invoices API', () => {
     expect(pdfResponse.body.length).toBeGreaterThan(0);
   });
 
+  test('rejects manual invoice items with more than 2 decimal unit price', async () => {
+    const { token } = await registerAndLogin();
+    const customer = await createCustomer(token);
+
+    const response = await request(app)
+      .post('/api/invoices')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        date: '2026-03-22',
+        items: [{ name: 'Ondalik Test', quantity: 1, unitPrice: 100.123 }]
+      });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.body.error.details).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'items.0.unitPrice', rule: 'maxDecimals' })])
+    );
+  });
+
   test('updates and deletes manual invoice successfully', async () => {
     const { token } = await registerAndLogin();
     const customer = await createCustomer(token);
@@ -478,5 +499,55 @@ describe('Invoices API', () => {
     expect(response.statusCode).toBe(404);
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('NOT_FOUND');
+  });
+
+  test('rejects duplicate custom invoice number for same user', async () => {
+    const { token } = await registerAndLogin();
+    const customer = await createCustomer(token);
+
+    const first = await request(app)
+      .post('/api/invoices')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        invoiceNumber: 'FTR-SECURE-001',
+        date: '2026-03-22',
+        items: [{ name: 'Aylik Hizmet', quantity: 1, unitPrice: 5000 }]
+      });
+
+    expect(first.statusCode).toBe(201);
+
+    const second = await request(app)
+      .post('/api/invoices')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        invoiceNumber: 'FTR-SECURE-001',
+        date: '2026-03-23',
+        items: [{ name: 'Ek Hizmet', quantity: 1, unitPrice: 3000 }]
+      });
+
+    expect(second.statusCode).toBe(409);
+    expect(second.body.success).toBe(false);
+    expect(second.body.error.code).toBe('CONFLICT');
+  });
+
+  test('rejects invalid custom invoice number format', async () => {
+    const { token } = await registerAndLogin();
+    const customer = await createCustomer(token);
+
+    const response = await request(app)
+      .post('/api/invoices')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        invoiceNumber: 'FTR 2026/01',
+        date: '2026-03-22',
+        items: [{ name: 'Aylik Hizmet', quantity: 1, unitPrice: 5000 }]
+      });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 });

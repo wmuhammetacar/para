@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { all, get, run } from '../db.js';
+import { all, get, run, withDbTransaction } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { badRequest, businessRule, notFound } from '../utils/httpErrors.js';
 import { assertPlanLimit } from '../utils/plans.js';
@@ -8,6 +9,7 @@ import { assertPlanLimit } from '../utils/plans.js';
 const router = Router();
 
 router.use(authenticate);
+router.use(abuseRateLimit);
 
 const MAX_NAME_LENGTH = 120;
 const MAX_PHONE_LENGTH = 30;
@@ -189,24 +191,27 @@ router.post('/', async (req, res, next) => {
   try {
     const { name, phone, email, address } = parseCustomerInput(req.body);
     validateCustomerInput({ name, phone, email, address });
-    await assertPlanLimit(req.user.id, 'customer_create');
 
-    const result = await run(
-      `
-      INSERT INTO customers (user_id, name, phone, email, address)
-      VALUES (?, ?, ?, ?, ?)
-      `,
-      [req.user.id, name, phone, email, address]
-    );
+    const created = await withDbTransaction(async () => {
+      await assertPlanLimit(req.user.id, 'customer_create');
 
-    const created = await get(
-      `
-      SELECT id, name, phone, email, address, created_at
-      FROM customers
-      WHERE id = ? AND user_id = ?
-      `,
-      [result.id, req.user.id]
-    );
+      const result = await run(
+        `
+        INSERT INTO customers (user_id, name, phone, email, address)
+        VALUES (?, ?, ?, ?, ?)
+        `,
+        [req.user.id, name, phone, email, address]
+      );
+
+      return get(
+        `
+        SELECT id, name, phone, email, address, created_at
+        FROM customers
+        WHERE id = ? AND user_id = ?
+        `,
+        [result.id, req.user.id]
+      );
+    });
 
     await recordAuditLog({
       req,
