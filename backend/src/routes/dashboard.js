@@ -1,7 +1,9 @@
 import { Router } from 'express';
-import { all, get } from '../db.js';
+import { all, get, run } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { recordAuditLog } from '../utils/audit.js';
 import { badRequest } from '../utils/httpErrors.js';
+import { getUserPlanSnapshot, listPlans, normalizePlanCode } from '../utils/plans.js';
 
 const router = Router();
 
@@ -103,6 +105,93 @@ function normalizeOptionalIsoDate(value, field) {
   }
 
   return date;
+}
+
+function normalizeGrowthPeriod(value) {
+  if (value === undefined || value === null || value === '') {
+    return 90;
+  }
+
+  const periodDays = Number(value);
+  if (!Number.isInteger(periodDays) || periodDays < 7 || periodDays > 365) {
+    throw badRequest('Growth period gecersiz. 7 ile 365 arasinda bir tam sayi olmali.', [
+      { field: 'period', rule: 'range', min: 7, max: 365 }
+    ]);
+  }
+
+  return periodDays;
+}
+
+function normalizePlanPatch(value) {
+  const planCode = normalizePlanCode(value);
+  if (!planCode) {
+    throw badRequest('Paket kodu gecersiz. Desteklenen degerler: starter, standard.', [
+      { field: 'planCode', rule: 'enum', values: ['starter', 'standard'] }
+    ]);
+  }
+
+  return planCode;
+}
+
+function toPercent(part, total) {
+  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+
+  return Number(((part / total) * 100).toFixed(1));
+}
+
+function buildGrowthHealth(quoteToInvoiceRate, invoiceToPaidRate) {
+  const score = Math.round(quoteToInvoiceRate * 0.55 + invoiceToPaidRate * 0.45);
+
+  if (score >= 75) {
+    return {
+      score,
+      status: 'healthy',
+      insight: 'Donusum zinciri guclu. Mevcut tempoyu koruyup tahsilat hizini optimize edin.'
+    };
+  }
+
+  if (score >= 45) {
+    return {
+      score,
+      status: 'watch',
+      insight: 'Donusum orta seviyede. Teklif-fatura ve tahsilat adimlarini yakindan takip edin.'
+    };
+  }
+
+  return {
+    score,
+    status: 'critical',
+    insight: 'Donusum zayif. Onboarding ve tahsilat aksiyonlarini hizlandirmaniz onerilir.'
+  };
+}
+
+function buildTrendBuckets(monthCount = 6) {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('tr-TR', {
+    month: 'short',
+    year: 'numeric'
+  });
+  const buckets = [];
+
+  for (let offset = monthCount - 1; offset >= 0; offset -= 1) {
+    const cursor = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const year = cursor.getFullYear();
+    const month = String(cursor.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${year}-${month}`;
+
+    buckets.push({
+      monthKey,
+      label: formatter.format(cursor),
+      issuedRevenue: 0,
+      collectedRevenue: 0,
+      createdInvoices: 0,
+      paidInvoices: 0
+    });
+  }
+
+  return buckets;
 }
 
 function parseMetadata(value) {
@@ -318,6 +407,165 @@ router.get('/activity', async (req, res, next) => {
   }
 });
 
+router.get('/growth', async (req, res, next) => {
+  try {
+    const periodDays = normalizeGrowthPeriod(req.query.period);
+    const dateFrom = isoDateOffset(-(periodDays - 1));
+    const dateTo = isoDateOffset(0);
+    const userId = req.user.id;
+
+    const funnelRow = await get(
+      `
+      SELECT
+        (SELECT COUNT(*) FROM customers WHERE user_id = ? AND date(created_at) >= date(?)) AS customers,
+        (SELECT COUNT(*) FROM quotes WHERE user_id = ? AND date(date) >= date(?)) AS quotes,
+        (SELECT COUNT(*) FROM invoices WHERE user_id = ? AND date(date) >= date(?)) AS invoices,
+        (SELECT COUNT(*) FROM invoices WHERE user_id = ? AND payment_status = 'paid' AND date(date) >= date(?)) AS paid_invoices
+      `,
+      [userId, dateFrom, userId, dateFrom, userId, dateFrom, userId, dateFrom]
+    );
+
+    const revenueRow = await get(
+      `
+      SELECT
+        COALESCE(SUM(CASE WHEN date(date) >= date(?) THEN total ELSE 0 END), 0) AS issued_revenue,
+        COALESCE(
+          SUM(CASE WHEN payment_status = 'paid' AND date(COALESCE(paid_at, date)) >= date(?) THEN total ELSE 0 END),
+          0
+        ) AS collected_revenue,
+        COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN total ELSE 0 END), 0) AS open_receivable,
+        COALESCE(
+          SUM(CASE WHEN payment_status = 'pending' AND date(due_date) < date(?) THEN total ELSE 0 END),
+          0
+        ) AS overdue_receivable
+      FROM invoices
+      WHERE user_id = ?
+      `,
+      [dateFrom, dateFrom, dateTo, userId]
+    );
+
+    const trendBuckets = buildTrendBuckets(6);
+    const trendDateFrom = `${trendBuckets[0]?.monthKey || new Date().toISOString().slice(0, 7)}-01`;
+    const trendRows = await all(
+      `
+      SELECT
+        strftime('%Y-%m', date) AS month_key,
+        COUNT(*) AS created_invoices,
+        COALESCE(SUM(total), 0) AS issued_revenue,
+        COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END), 0) AS paid_invoices,
+        COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total ELSE 0 END), 0) AS collected_revenue
+      FROM invoices
+      WHERE user_id = ? AND date(date) >= date(?)
+      GROUP BY month_key
+      ORDER BY month_key ASC
+      `,
+      [userId, trendDateFrom]
+    );
+
+    const trendByMonth = new Map(
+      trendRows.map((row) => [
+        row.month_key,
+        {
+          issuedRevenue: Number((Number(row.issued_revenue) || 0).toFixed(2)),
+          collectedRevenue: Number((Number(row.collected_revenue) || 0).toFixed(2)),
+          createdInvoices: Number(row.created_invoices) || 0,
+          paidInvoices: Number(row.paid_invoices) || 0
+        }
+      ])
+    );
+
+    const trend = trendBuckets.map((bucket) => ({
+      ...bucket,
+      ...(trendByMonth.get(bucket.monthKey) || {})
+    }));
+
+    const funnel = {
+      customers: Number(funnelRow?.customers) || 0,
+      quotes: Number(funnelRow?.quotes) || 0,
+      invoices: Number(funnelRow?.invoices) || 0,
+      paidInvoices: Number(funnelRow?.paid_invoices) || 0
+    };
+    const quoteToInvoiceRate = toPercent(funnel.invoices, funnel.quotes);
+    const invoiceToPaidRate = toPercent(funnel.paidInvoices, funnel.invoices);
+    const health = buildGrowthHealth(quoteToInvoiceRate, invoiceToPaidRate);
+
+    res.json({
+      periodDays,
+      dateFrom,
+      dateTo,
+      funnel: {
+        ...funnel,
+        quoteToInvoiceRate,
+        invoiceToPaidRate
+      },
+      revenue: {
+        issued: Number((Number(revenueRow?.issued_revenue) || 0).toFixed(2)),
+        collected: Number((Number(revenueRow?.collected_revenue) || 0).toFixed(2)),
+        openReceivable: Number((Number(revenueRow?.open_receivable) || 0).toFixed(2)),
+        overdueReceivable: Number((Number(revenueRow?.overdue_receivable) || 0).toFixed(2))
+      },
+      health,
+      trend
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/plan', async (req, res, next) => {
+  try {
+    const snapshot = await getUserPlanSnapshot(req.user.id);
+    const availablePlans = listPlans();
+
+    res.json({
+      currentPlan: snapshot.plan,
+      monthRange: snapshot.monthRange,
+      usage: snapshot.metrics,
+      availablePlans
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/plan', async (req, res, next) => {
+  try {
+    const planCode = normalizePlanPatch(req.body.planCode);
+    const existing = await get('SELECT id, plan_code FROM users WHERE id = ?', [req.user.id]);
+    if (!existing) {
+      next(badRequest('Kullanici bulunamadi.'));
+      return;
+    }
+
+    if (existing.plan_code !== planCode) {
+      await run('UPDATE users SET plan_code = ? WHERE id = ?', [planCode, req.user.id]);
+      await recordAuditLog({
+        req,
+        userId: req.user.id,
+        eventType: 'PLAN_UPDATED',
+        resourceType: 'user',
+        resourceId: String(req.user.id),
+        metadata: {
+          oldPlanCode: existing.plan_code || 'starter',
+          newPlanCode: planCode
+        }
+      });
+    }
+
+    const snapshot = await getUserPlanSnapshot(req.user.id);
+    const availablePlans = listPlans();
+
+    res.json({
+      currentPlan: snapshot.plan,
+      monthRange: snapshot.monthRange,
+      usage: snapshot.metrics,
+      availablePlans
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/activation', async (req, res, next) => {
   try {
     const counts = await get(
@@ -331,14 +579,15 @@ router.get('/activation', async (req, res, next) => {
       [req.user.id, req.user.id, req.user.id, req.user.id]
     );
 
-    const steps = [
+    const stepBlueprint = [
       {
         key: 'customer',
         label: 'Ilk Musteri Kaydi',
         description: 'Musteri listesine en az bir kayit ekleyin.',
         current: Number(counts?.total_customers) || 0,
         target: 1,
-        ctaPath: '/customers'
+        ctaPath: '/customers',
+        actionLabel: 'Musteri Ekle'
       },
       {
         key: 'quote',
@@ -346,7 +595,8 @@ router.get('/activation', async (req, res, next) => {
         description: 'Musteriniz icin en az bir teklif olusturun.',
         current: Number(counts?.total_quotes) || 0,
         target: 1,
-        ctaPath: '/quotes'
+        ctaPath: '/quotes',
+        actionLabel: 'Teklif Olustur'
       },
       {
         key: 'invoice',
@@ -354,7 +604,8 @@ router.get('/activation', async (req, res, next) => {
         description: 'Tekliften veya manuel olarak en az bir fatura olusturun.',
         current: Number(counts?.total_invoices) || 0,
         target: 1,
-        ctaPath: '/invoices'
+        ctaPath: '/invoices',
+        actionLabel: 'Fatura Olustur'
       },
       {
         key: 'reminder',
@@ -362,24 +613,72 @@ router.get('/activation', async (req, res, next) => {
         description: 'En az bir basarili hatirlatma gonderimi tamamlayin.',
         current: Number(counts?.total_sent_reminders) || 0,
         target: 1,
-        ctaPath: '/invoices'
+        ctaPath: '/invoices',
+        actionLabel: 'Hatirlatma Gonder'
       }
-    ].map((step) => ({
-      ...step,
-      completed: step.current >= step.target
-    }));
+    ];
+
+    const steps = stepBlueprint.map((step, index) => {
+      const safeCurrent = Number(step.current) || 0;
+      const safeTarget = Number(step.target) || 1;
+      const completed = safeCurrent >= safeTarget;
+      const progressPercent = Math.max(
+        0,
+        Math.min(100, Math.round((Math.min(safeCurrent, safeTarget) / safeTarget) * 100))
+      );
+      const remaining = Math.max(0, safeTarget - safeCurrent);
+      const estimatedMinutes = completed ? 0 : Math.max(2, 2 + index);
+
+      return {
+        ...step,
+        current: safeCurrent,
+        target: safeTarget,
+        completed,
+        progressPercent,
+        remaining,
+        estimatedMinutes,
+        priority: completed ? 999 : index + 1,
+        status: completed ? 'completed' : 'pending'
+      };
+    });
 
     const completedSteps = steps.filter((step) => step.completed).length;
     const totalSteps = steps.length;
+    const remainingSteps = Math.max(0, totalSteps - completedSteps);
     const completionPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
     const nextStep = steps.find((step) => !step.completed) || null;
+    const quickWins = steps
+      .filter((step) => !step.completed)
+      .slice(0, 2)
+      .map((step) => ({
+        key: step.key,
+        label: step.label,
+        ctaPath: step.ctaPath,
+        estimatedMinutes: step.estimatedMinutes
+      }));
+    const estimatedMinutesLeft = steps
+      .filter((step) => !step.completed)
+      .reduce((sum, step) => sum + (Number(step.estimatedMinutes) || 0), 0);
+
+    let momentumStatus = 'not_started';
+    if (completionPercent >= 100) {
+      momentumStatus = 'completed';
+    } else if (completionPercent >= 50) {
+      momentumStatus = 'on_track';
+    } else if (completionPercent > 0) {
+      momentumStatus = 'warming_up';
+    }
 
     res.json({
       completedSteps,
       totalSteps,
+      remainingSteps,
       completionPercent,
       isCompleted: completedSteps === totalSteps,
+      estimatedMinutesLeft,
+      momentumStatus,
       nextStep,
+      quickWins,
       steps
     });
   } catch (error) {

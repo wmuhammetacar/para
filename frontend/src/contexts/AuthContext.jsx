@@ -31,6 +31,18 @@ export function AuthProvider({ children }) {
     }
   }
 
+  function updateUser(patch) {
+    setUser((prevUser) => {
+      const nextUser = {
+        ...(prevUser || {}),
+        ...(patch || {})
+      };
+
+      localStorage.setItem('teklifim_user', JSON.stringify(nextUser));
+      return nextUser;
+    });
+  }
+
   function logout() {
     setToken('');
     setUser(null);
@@ -39,7 +51,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ token, user, loading, isAuthenticated: Boolean(token), login, logout }),
+    () => ({ token, user, loading, isAuthenticated: Boolean(token), login, logout, updateUser }),
     [token, user, loading]
   );
 

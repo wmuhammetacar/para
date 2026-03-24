@@ -93,10 +93,16 @@ export async function initDb() {
 
   await ensureColumn('users', 'failed_login_attempts', 'INTEGER NOT NULL DEFAULT 0');
   await ensureColumn('users', 'locked_until', 'TEXT');
+  await ensureColumn('users', 'plan_code', "TEXT NOT NULL DEFAULT 'starter'");
   await run(`
     UPDATE users
     SET failed_login_attempts = 0
     WHERE failed_login_attempts IS NULL OR failed_login_attempts < 0
+  `);
+  await run(`
+    UPDATE users
+    SET plan_code = 'starter'
+    WHERE plan_code IS NULL OR plan_code NOT IN ('starter', 'standard')
   `);
 
   await run(`

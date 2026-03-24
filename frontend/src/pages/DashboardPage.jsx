@@ -53,6 +53,19 @@ function resolveActivityDateFrom(period) {
   }
 }
 
+function resolveGrowthPeriodDays(period) {
+  switch (period) {
+    case 'today':
+      return 7;
+    case '7':
+      return 30;
+    case '30':
+      return 90;
+    default:
+      return 180;
+  }
+}
+
 function formatDateTime(value) {
   if (!value) {
     return '-';
@@ -132,6 +145,31 @@ export default function DashboardPage() {
       days31plus: 0
     }
   });
+  const [growth, setGrowth] = useState({
+    periodDays: 90,
+    dateFrom: null,
+    dateTo: null,
+    funnel: {
+      customers: 0,
+      quotes: 0,
+      invoices: 0,
+      paidInvoices: 0,
+      quoteToInvoiceRate: 0,
+      invoiceToPaidRate: 0
+    },
+    revenue: {
+      issued: 0,
+      collected: 0,
+      openReceivable: 0,
+      overdueReceivable: 0
+    },
+    health: {
+      score: 0,
+      status: 'not_started',
+      insight: 'Veri olustukca donusum sagligi gorunur hale gelir.'
+    },
+    trend: []
+  });
   const [error, setError] = useState('');
   const [activities, setActivities] = useState([]);
 
@@ -144,14 +182,18 @@ export default function DashboardPage() {
         const activityPath = activityDateFrom
           ? `/dashboard/activity?limit=8&dateFrom=${activityDateFrom}`
           : '/dashboard/activity?limit=8';
+        const growthPeriodDays = resolveGrowthPeriodDays(period);
+        const growthPath = `/dashboard/growth?period=${growthPeriodDays}`;
 
-        const [statsResponse, activityResponse] = await Promise.all([
+        const [statsResponse, activityResponse, growthResponse] = await Promise.all([
           apiRequest(`/dashboard/stats?period=${period}`, { token }),
-          apiRequest(activityPath, { token })
+          apiRequest(activityPath, { token }),
+          apiRequest(growthPath, { token })
         ]);
 
         setStats(statsResponse);
         setActivities(Array.isArray(activityResponse?.activities) ? activityResponse.activities : []);
+        setGrowth(growthResponse || {});
       } catch (fetchError) {
         setError(fetchError.message);
       } finally {
@@ -247,6 +289,111 @@ export default function DashboardPage() {
               Vadesi gecmis toplam {stats.overdueInvoiceCount} fatura
             </p>
           </div>
+        </div>
+      ) : null}
+
+      {!loading ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="card">
+            <h3 className="text-lg font-semibold text-slate-900">Donusum Sagligi</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Son {growth.periodDays || 0} gunluk quote-invoice-tahsilat zinciri
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">Teklif - Fatura Donusumu</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">%{growth.funnel?.quoteToInvoiceRate ?? 0}</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  {growth.funnel?.quotes ?? 0} tekliften {growth.funnel?.invoices ?? 0} fatura
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">Fatura - Tahsilat Donusumu</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">%{growth.funnel?.invoiceToPaidRate ?? 0}</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  {growth.funnel?.invoices ?? 0} faturadan {growth.funnel?.paidInvoices ?? 0} tahsilat
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs text-slate-500">Growth Health Score</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{growth.health?.score ?? 0}</p>
+              <p className="mt-2 text-xs text-slate-500">{growth.health?.insight || '-'}</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold text-slate-900">Gelir Kompozisyonu</h3>
+            <p className="mt-1 text-sm text-slate-600">Operasyonel tahsilat gorunumu</p>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">Kesilen Fatura Toplami</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">
+                  {formatCurrency(growth.revenue?.issued || 0)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-emerald-50 p-3">
+                <p className="text-xs text-emerald-700">Tahsil Edilen</p>
+                <p className="mt-1 text-xl font-bold text-emerald-700">
+                  {formatCurrency(growth.revenue?.collected || 0)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs text-amber-700">Acik Alacak</p>
+                <p className="mt-1 text-xl font-bold text-amber-700">
+                  {formatCurrency(growth.revenue?.openReceivable || 0)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                <p className="text-xs text-rose-700">Vadesi Gecikmis</p>
+                <p className="mt-1 text-xl font-bold text-rose-700">
+                  {formatCurrency(growth.revenue?.overdueReceivable || 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {!loading ? (
+        <div className="card overflow-x-auto">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold text-slate-900">6 Aylik Trend</h3>
+            <p className="text-xs text-slate-500">Fatura olusumu ve tahsilat ritmi</p>
+          </div>
+
+          <table className="mt-4 min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500">
+                <th className="py-2 pr-4">Ay</th>
+                <th className="py-2 pr-4">Fatura</th>
+                <th className="py-2 pr-4">Tahsilat (Adet)</th>
+                <th className="py-2 pr-4">Kesilen Tutar</th>
+                <th className="py-2 pr-4">Tahsil Edilen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(Array.isArray(growth.trend) ? growth.trend : []).map((row) => (
+                <tr key={row.monthKey} className="border-b border-slate-100">
+                  <td className="py-3 pr-4 font-medium text-slate-800">{row.label || row.monthKey}</td>
+                  <td className="table-cell-muted py-3 pr-4">{row.createdInvoices ?? 0}</td>
+                  <td className="table-cell-muted py-3 pr-4">{row.paidInvoices ?? 0}</td>
+                  <td className="table-cell-muted py-3 pr-4">{formatCurrency(row.issuedRevenue || 0)}</td>
+                  <td className="table-cell-muted py-3 pr-4">{formatCurrency(row.collectedRevenue || 0)}</td>
+                </tr>
+              ))}
+              {!growth.trend?.length ? (
+                <tr>
+                  <td className="py-8 text-center text-slate-500" colSpan={5}>
+                    Trend verisi bulunamadi.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       ) : null}
 

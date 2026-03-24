@@ -24,12 +24,29 @@ describe('OnboardingPage', () => {
     apiRequestMock.mockResolvedValue({
       completedSteps: 2,
       totalSteps: 4,
+      remainingSteps: 2,
       completionPercent: 50,
       isCompleted: false,
+      estimatedMinutesLeft: 8,
+      momentumStatus: 'on_track',
       nextStep: {
         key: 'invoice',
         ctaPath: '/invoices'
       },
+      quickWins: [
+        {
+          key: 'invoice',
+          label: 'Ilk Fatura Olusturma',
+          ctaPath: '/invoices',
+          estimatedMinutes: 4
+        },
+        {
+          key: 'reminder',
+          label: 'Ilk Tahsilat Hatirlatmasi',
+          ctaPath: '/invoices',
+          estimatedMinutes: 4
+        }
+      ],
       steps: [
         {
           key: 'customer',
@@ -37,6 +54,10 @@ describe('OnboardingPage', () => {
           description: 'Musteri olusturun',
           current: 1,
           target: 1,
+          remaining: 0,
+          progressPercent: 100,
+          estimatedMinutes: 0,
+          actionLabel: 'Musteri Ekle',
           ctaPath: '/customers',
           completed: true
         },
@@ -46,6 +67,10 @@ describe('OnboardingPage', () => {
           description: 'Teklif olusturun',
           current: 1,
           target: 1,
+          remaining: 0,
+          progressPercent: 100,
+          estimatedMinutes: 0,
+          actionLabel: 'Teklif Olustur',
           ctaPath: '/quotes',
           completed: true
         },
@@ -55,6 +80,10 @@ describe('OnboardingPage', () => {
           description: 'Fatura olusturun',
           current: 0,
           target: 1,
+          remaining: 1,
+          progressPercent: 0,
+          estimatedMinutes: 4,
+          actionLabel: 'Fatura Olustur',
           ctaPath: '/invoices',
           completed: false
         }
@@ -74,7 +103,12 @@ describe('OnboardingPage', () => {
     expect(await screen.findByText('Onboarding Aktivasyon')).toBeInTheDocument();
     expect(await screen.findByText('%50')).toBeInTheDocument();
     expect(await screen.findByText('Tamamlanan Adim: 2 / 4')).toBeInTheDocument();
-    expect(await screen.findByText('Ilk Fatura Olusturma')).toBeInTheDocument();
+    expect(await screen.findByText('Kalan Adim')).toBeInTheDocument();
+    expect(await screen.findByText('8 dk')).toBeInTheDocument();
+    expect(await screen.findByText('Momentum: Yolda')).toBeInTheDocument();
+    const invoiceStepLabels = await screen.findAllByText('Ilk Fatura Olusturma');
+    expect(invoiceStepLabels.length).toBeGreaterThan(0);
+    expect(await screen.findByText('Hizli Kazanimlar')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Durumu Yenile' }));
 

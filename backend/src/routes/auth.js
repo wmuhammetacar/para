@@ -6,6 +6,7 @@ import { get, run } from '../db.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { badRequest, conflict, locked, notFound, unauthorized } from '../utils/httpErrors.js';
 import { signToken } from '../utils/jwt.js';
+import { getDefaultPlanCode, normalizePlanCode } from '../utils/plans.js';
 
 const router = Router();
 
@@ -63,6 +64,8 @@ router.post('/register', authRateLimit, async (req, res, next) => {
     const companyName = typeof req.body.companyName === 'string' && req.body.companyName.trim()
       ? req.body.companyName.trim()
       : 'Teklifim';
+    const requestedPlanCode = normalizePlanCode(req.body.planCode);
+    const planCode = requestedPlanCode || getDefaultPlanCode();
 
     if (!email || !email.includes('@')) {
       await recordAuditLog({
@@ -128,14 +131,15 @@ router.post('/register', authRateLimit, async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const result = await run(
-      'INSERT INTO users (email, password_hash, company_name) VALUES (?, ?, ?)',
-      [email, passwordHash, companyName]
+      'INSERT INTO users (email, password_hash, company_name, plan_code) VALUES (?, ?, ?, ?)',
+      [email, passwordHash, companyName, planCode]
     );
 
     const user = {
       id: result.id,
       email,
-      company_name: companyName
+      company_name: companyName,
+      plan_code: planCode
     };
 
     const token = signToken(user);
@@ -153,7 +157,8 @@ router.post('/register', authRateLimit, async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        companyName: user.company_name
+        companyName: user.company_name,
+        planCode: user.plan_code
       }
     });
   } catch (error) {
@@ -281,7 +286,8 @@ router.post('/login', authRateLimit, async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        companyName: user.company_name
+        companyName: user.company_name,
+        planCode: user.plan_code || getDefaultPlanCode()
       }
     });
   } catch (error) {
@@ -291,7 +297,7 @@ router.post('/login', authRateLimit, async (req, res, next) => {
 
 router.get('/me', authenticate, async (req, res, next) => {
   try {
-    const user = await get('SELECT id, email, company_name FROM users WHERE id = ?', [req.user.id]);
+    const user = await get('SELECT id, email, company_name, plan_code FROM users WHERE id = ?', [req.user.id]);
 
     if (!user) {
       next(notFound('Kullanici bulunamadi.'));
@@ -301,7 +307,8 @@ router.get('/me', authenticate, async (req, res, next) => {
     res.json({
       id: user.id,
       email: user.email,
-      companyName: user.company_name
+      companyName: user.company_name,
+      planCode: user.plan_code || getDefaultPlanCode()
     });
   } catch (error) {
     next(error);

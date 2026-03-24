@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 const navItems = [
   { to: '/dashboard', label: 'Genel Bakis', hint: 'Performans ve ciro ozeti' },
   { to: '/onboarding', label: 'Onboarding', hint: 'Ilk 10 dakika aktivasyon' },
+  { to: '/plans', label: 'Paketler', hint: 'Plan ve kullanim limitleri' },
   { to: '/customers', label: 'Musteriler', hint: 'Cari kayit yonetimi' },
   { to: '/quotes', label: 'Teklifler', hint: 'Teklif olusturma ve takip' },
   { to: '/invoices', label: 'Faturalar', hint: 'Fatura kayit yonetimi' }
@@ -52,6 +53,9 @@ export default function AppLayout() {
           <div className="mt-6 rounded-xl border border-slate-700/90 bg-slate-900/60 p-3 text-xs text-slate-300 lg:mt-10">
             <p className="font-semibold text-white">{user?.companyName || 'Teklifim'}</p>
             <p className="mt-1 break-all">{user?.email}</p>
+            <p className="mt-1 text-[11px] uppercase tracking-wide text-brand-100">
+              Paket: {(user?.planCode || 'starter').toUpperCase()}
+            </p>
             <button
               type="button"
               onClick={logout}

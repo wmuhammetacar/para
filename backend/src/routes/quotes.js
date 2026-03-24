@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { buildDocumentNumber, normalizeDate, sanitizeItems } from '../utils/documents.js';
 import { badRequest, notFound } from '../utils/httpErrors.js';
+import { assertPlanLimit } from '../utils/plans.js';
 import { writeDocumentPdf } from '../utils/pdf.js';
 
 const router = Router();
@@ -198,6 +199,7 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    await assertPlanLimit(req.user.id, 'quote_create');
     const customerId = Number(req.body.customerId);
 
     if (!Number.isInteger(customerId) || customerId <= 0) {

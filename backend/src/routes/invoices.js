@@ -5,6 +5,7 @@ import { buildDefaultReminderMessage, processReminderQueue } from '../services/r
 import { recordAuditLog } from '../utils/audit.js';
 import { buildDocumentNumber, normalizeDate, sanitizeItems } from '../utils/documents.js';
 import { badRequest, notFound } from '../utils/httpErrors.js';
+import { assertPlanLimit } from '../utils/plans.js';
 import { writeDocumentPdf } from '../utils/pdf.js';
 
 const router = Router();
@@ -650,6 +651,7 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    await assertPlanLimit(req.user.id, 'invoice_create');
     const date = normalizeDate(req.body.date);
     const dueDate = normalizeDate(req.body.dueDate || date);
     const paymentStatus = normalizePaymentStatus(req.body.paymentStatus);
@@ -1004,6 +1006,7 @@ router.get('/:id/reminders', async (req, res, next) => {
 
 router.post('/:id/reminders', async (req, res, next) => {
   try {
+    await assertPlanLimit(req.user.id, 'reminder_create');
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {

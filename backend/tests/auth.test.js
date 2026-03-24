@@ -13,6 +13,7 @@ describe('Auth API', () => {
     expect(response.statusCode).toBe(201);
     expect(response.body.token).toBeTruthy();
     expect(response.body.user.email).toBe('owner@test.com');
+    expect(response.body.user.planCode).toBe('starter');
   });
 
   test('returns standardized validation error for invalid register payload', async () => {

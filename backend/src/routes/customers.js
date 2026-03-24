@@ -3,6 +3,7 @@ import { all, get, run } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { badRequest, businessRule, notFound } from '../utils/httpErrors.js';
+import { assertPlanLimit } from '../utils/plans.js';
 
 const router = Router();
 
@@ -188,6 +189,7 @@ router.post('/', async (req, res, next) => {
   try {
     const { name, phone, email, address } = parseCustomerInput(req.body);
     validateCustomerInput({ name, phone, email, address });
+    await assertPlanLimit(req.user.id, 'customer_create');
 
     const result = await run(
       `

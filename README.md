@@ -17,7 +17,9 @@ Teklifim, Turkiye'deki kucuk isletmeler icin hizli teklif ve fatura yonetimi sun
 3. Quote management (create, edit, delete, detail view, items, auto total, PDF export)
 4. Invoice management (manual or from quote, create/edit/delete, detail view, due date + payment status tracking, PDF export, reminder queue: WhatsApp/E-posta, reminder ops panel + failed retry)
 5. Dashboard stats (customers, quotes, invoices, total revenue, pending receivable, overdue receivable, period filter: all/today/7/30)
-6. Onboarding activation flow (first customer/quote/invoice/reminder checklist)
+6. Onboarding activation flow (first customer/quote/invoice/reminder checklist + quick-win priorities + estimated completion time)
+7. Growth analytics panel (quote->invoice and invoice->payment conversion, 6-month trend, revenue composition)
+8. Package and pricing management (starter/standard package switch + limit usage tracking)
 
 ## Project Structure
 
@@ -40,6 +42,8 @@ teklifim/
     SPRINT_6_EXECUTION.md
     SPRINT_7_EXECUTION.md
     SPRINT_8_EXECUTION.md
+    SPRINT_9_EXECUTION.md
+    SPRINT_10_EXECUTION.md
     STAGING_SETUP.md
     STAGING_SMOKE_RUNBOOK.md
     ROLLBACK_RUNBOOK.md
@@ -209,7 +213,10 @@ Base URL: `http://localhost:4000/api`
 - `GET /dashboard/stats`
 - `GET /dashboard/stats?period=all|today|7|30`
 - `GET /dashboard/activity?limit=1..50&dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`
+- `GET /dashboard/growth?period=7..365`
 - `GET /dashboard/activation`
+- `GET /dashboard/plan`
+- `PATCH /dashboard/plan`
 
 ### Health
 
@@ -257,7 +264,8 @@ Base URL: `http://localhost:4000/api`
 {
   "email": "owner@firma.com",
   "password": "Strong123",
-  "companyName": "Firma Adi"
+  "companyName": "Firma Adi",
+  "planCode": "starter"
 }
 ```
 

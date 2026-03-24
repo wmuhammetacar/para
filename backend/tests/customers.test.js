@@ -130,4 +130,36 @@ describe('Customers API', () => {
       expect.arrayContaining([expect.objectContaining({ field: 'phone', rule: 'format' })])
     );
   });
+
+  test('enforces starter package customer limit', async () => {
+    const { token } = await registerAndLogin();
+
+    for (let index = 0; index < 50; index += 1) {
+      const response = await request(app)
+        .post('/api/customers')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          name: `Musteri ${index + 1}`,
+          phone: `+90 555 100 ${String(index).padStart(4, '0')}`,
+          email: `musteri-${index + 1}@test.local`,
+          address: 'Istanbul'
+        });
+
+      expect(response.statusCode).toBe(201);
+    }
+
+    const blockedResponse = await request(app)
+      .post('/api/customers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Musteri 51',
+        phone: '+90 555 111 1111',
+        email: 'musteri-51@test.local',
+        address: 'Istanbul'
+      });
+
+    expect(blockedResponse.statusCode).toBe(400);
+    expect(blockedResponse.body.success).toBe(false);
+    expect(blockedResponse.body.error.code).toBe('BUSINESS_RULE_VIOLATION');
+  });
 });

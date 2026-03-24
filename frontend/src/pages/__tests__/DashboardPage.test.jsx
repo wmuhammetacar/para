@@ -87,6 +87,51 @@ function buildActivity(path) {
   };
 }
 
+function buildGrowth(periodDays) {
+  return {
+    periodDays,
+    dateFrom: '2026-01-01',
+    dateTo: '2026-03-24',
+    funnel: {
+      customers: 3,
+      quotes: 4,
+      invoices: 3,
+      paidInvoices: 2,
+      quoteToInvoiceRate: 75,
+      invoiceToPaidRate: 66.7
+    },
+    revenue: {
+      issued: 12000,
+      collected: 8500,
+      openReceivable: 3500,
+      overdueReceivable: 1200
+    },
+    health: {
+      score: 71,
+      status: 'watch',
+      insight: 'Donusum orta seviyede.'
+    },
+    trend: [
+      {
+        monthKey: '2026-02',
+        label: 'sub 2026',
+        issuedRevenue: 5000,
+        collectedRevenue: 4000,
+        createdInvoices: 2,
+        paidInvoices: 1
+      },
+      {
+        monthKey: '2026-03',
+        label: 'mar 2026',
+        issuedRevenue: 7000,
+        collectedRevenue: 4500,
+        createdInvoices: 3,
+        paidInvoices: 2
+      }
+    ]
+  };
+}
+
 describe('DashboardPage', () => {
   beforeEach(() => {
     apiRequestMock.mockReset();
@@ -100,6 +145,11 @@ describe('DashboardPage', () => {
         return Promise.resolve(buildActivity(path));
       }
 
+      if (path.startsWith('/dashboard/growth?period=')) {
+        const periodDays = Number(path.split('=')[1]) || 90;
+        return Promise.resolve(buildGrowth(periodDays));
+      }
+
       return Promise.resolve(null);
     });
   });
@@ -110,6 +160,8 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Toplam Musteri')).toBeInTheDocument();
     expect(screen.getByText('Son Islemler')).toBeInTheDocument();
+    expect(screen.getByText('Donusum Sagligi')).toBeInTheDocument();
+    expect(screen.getByText('6 Aylik Trend')).toBeInTheDocument();
     expect(screen.getByText('Fatura Olusturuldu')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -117,6 +169,9 @@ describe('DashboardPage', () => {
         token: 'test-token'
       });
       expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/activity?limit=8', {
+        token: 'test-token'
+      });
+      expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/growth?period=180', {
         token: 'test-token'
       });
     });
@@ -132,6 +187,9 @@ describe('DashboardPage', () => {
           ([path]) => typeof path === 'string' && path.startsWith('/dashboard/activity?limit=8&dateFrom=')
         )
       ).toBe(true);
+      expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/growth?period=7', {
+        token: 'test-token'
+      });
     });
 
     expect(await screen.findByText('Fatura Odeme Durumu Guncellendi')).toBeInTheDocument();

@@ -121,3 +121,13 @@ Azaltim aksiyonlari:
 
 - Sprint 0 temel surec kurulumu tamamlandi (`docs/SPRINT_0_PLAN.md`).
 - Sprint 1 icrasi tamamlandi (`docs/SPRINT_1_EXECUTION.md`).
+- Sprint 2 icrasi tamamlandi (`docs/SPRINT_2_EXECUTION.md`).
+- Sprint 3 icrasi tamamlandi (`docs/SPRINT_3_EXECUTION.md`).
+- Sprint 4 icrasi tamamlandi (`docs/SPRINT_4_EXECUTION.md`).
+- Sprint 5 icrasi tamamlandi (`docs/SPRINT_5_EXECUTION.md`).
+- Sprint 6 icrasi tamamlandi (`docs/SPRINT_6_EXECUTION.md`).
+- Sprint 7 icrasi tamamlandi (`docs/SPRINT_7_EXECUTION.md`).
+- Sprint 8 icrasi tamamlandi (`docs/SPRINT_8_EXECUTION.md`).
+- Sprint 9 icrasi tamamlandi (`docs/SPRINT_9_EXECUTION.md`).
+- Sprint 10 icrasi tamamlandi (`docs/SPRINT_10_EXECUTION.md`).
+- Sonraki odak: Sprint 11 (growth analytics olgunlastirma), Sprint 12 (pilot hardening).
