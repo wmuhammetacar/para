@@ -1,121 +1,21 @@
 import { useEffect, useState } from 'react';
 import { apiRequest, formatCurrency, formatDate } from '../api';
+import AgingBucketsCard from '../components/dashboard/AgingBucketsCard';
+import ConversionSummaryCard from '../components/dashboard/ConversionSummaryCard';
+import PeriodFilterCard from '../components/dashboard/PeriodFilterCard';
+import PrimaryStatsGrid from '../components/dashboard/PrimaryStatsGrid';
+import RecentActivitiesCard from '../components/dashboard/RecentActivitiesCard';
+import {
+  activityDetail,
+  activityEventLabel,
+  activityResourceLabel,
+  formatDateTime,
+  periodOptions,
+  resolveActivityDateFrom,
+  resolveGrowthPeriodDays
+} from '../components/dashboard/dashboardHelpers';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
-
-const periodOptions = [
-  { value: 'all', label: 'Tum Zamanlar' },
-  { value: 'today', label: 'Bugun' },
-  { value: '7', label: '7 Gun' },
-  { value: '30', label: '30 Gun' }
-];
-
-const activityEventLabelMap = {
-  AUTH_REGISTER_SUCCESS: 'Kayit Basarili',
-  AUTH_LOGIN_SUCCESS: 'Giris Basarili',
-  AUTH_LOGIN_FAILED: 'Giris Basarisiz',
-  CUSTOMER_CREATED: 'Musteri Eklendi',
-  CUSTOMER_UPDATED: 'Musteri Guncellendi',
-  CUSTOMER_DELETED: 'Musteri Silindi',
-  QUOTE_CREATED: 'Teklif Olusturuldu',
-  QUOTE_UPDATED: 'Teklif Guncellendi',
-  QUOTE_DELETED: 'Teklif Silindi',
-  INVOICE_CREATED: 'Fatura Olusturuldu',
-  INVOICE_UPDATED: 'Fatura Guncellendi',
-  INVOICE_DELETED: 'Fatura Silindi',
-  INVOICE_PAYMENT_UPDATED: 'Tahsilat Durumu Guncellendi',
-  INVOICE_BULK_PAYMENT_UPDATED: 'Toplu Tahsilat Durumu Guncellendi',
-  INVOICE_REMINDER_CREATED: 'Tahsilat Hatirlatmasi Gonderildi'
-};
-
-function isoDateOffset(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function resolveActivityDateFrom(period) {
-  switch (period) {
-    case 'today':
-      return isoDateOffset(0);
-    case '7':
-      return isoDateOffset(-6);
-    case '30':
-      return isoDateOffset(-29);
-    default:
-      return null;
-  }
-}
-
-function resolveGrowthPeriodDays(period) {
-  switch (period) {
-    case 'today':
-      return 7;
-    case '7':
-      return 30;
-    case '30':
-      return 90;
-    default:
-      return 180;
-  }
-}
-
-function formatDateTime(value) {
-  if (!value) {
-    return '-';
-  }
-
-  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('tr-TR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date);
-}
-
-function activityEventLabel(eventType) {
-  return activityEventLabelMap[eventType] || eventType || '-';
-}
-
-function activityResourceLabel(activity) {
-  if (!activity?.resourceType) {
-    return '-';
-  }
-
-  if (activity.resourceId) {
-    return `${activity.resourceType} #${activity.resourceId}`;
-  }
-
-  return activity.resourceType;
-}
-
-function activityDetail(activity) {
-  const metadata = activity?.metadata || {};
-  if (metadata.invoiceNumber) {
-    return metadata.invoiceNumber;
-  }
-
-  if (metadata.quoteNumber) {
-    return metadata.quoteNumber;
-  }
-
-  if (metadata.name) {
-    return metadata.name;
-  }
-
-  if (metadata.status) {
-    return `Durum: ${metadata.status}`;
-  }
-
-  return '-';
-}
 
 export default function DashboardPage() {
   const { token } = useAuth();
@@ -202,177 +102,44 @@ export default function DashboardPage() {
     hour: '2-digit',
     minute: '2-digit'
   });
+
   const periodRangeText = stats.dateFrom
     ? `${formatDate(stats.dateFrom)} - ${formatDate(new Date().toISOString().slice(0, 10))}`
     : 'Tum tarih araligi';
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Panel"
-        description="Bugun dikkat gerektiren tahsilatlari ve son hareketleri izleyin."
-      />
+      <PageHeader title="Panel" description="Bugun dikkat gerektiren tahsilatlari ve son hareketleri izleyin." />
 
-      <div className="card">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="chip bg-slate-100 text-slate-700">Donem</div>
-          {periodOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setPeriod(option.value)}
-              className={
-                option.value === period
-                  ? 'btn-primary px-3 py-2 text-xs'
-                  : 'btn-secondary px-3 py-2 text-xs'
-              }
-            >
-              {option.label}
-            </button>
-          ))}
-          <span className="ml-auto text-xs text-slate-500">Secili donem: {stats.periodLabel || 'Tum Zamanlar'}</span>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">Tarih araligi: {periodRangeText}</p>
-      </div>
+      <PeriodFilterCard
+        period={period}
+        periodOptions={periodOptions}
+        periodLabel={stats.periodLabel}
+        periodRangeText={periodRangeText}
+        onPeriodChange={setPeriod}
+      />
 
       {error ? <div className="status-error">{error}</div> : null}
 
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array.from({ length: 4 })].map((_, index) => (
-            <div key={index} className="card animate-pulse">
-              <div className="h-3 w-24 rounded bg-slate-200" />
-              <div className="mt-4 h-8 w-20 rounded bg-slate-200" />
-              <div className="mt-3 h-3 w-28 rounded bg-slate-100" />
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <PrimaryStatsGrid
+        loading={loading}
+        stats={stats}
+        updatedAt={updatedAt}
+        formatCurrency={formatCurrency}
+      />
 
-      {!loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="stat-card border-l-4 border-l-amber-500">
-            <p className="text-sm text-slate-500">Acik Tahsilat</p>
-            <p className="mt-2 text-3xl font-bold text-amber-700">{formatCurrency(stats.pendingReceivable)}</p>
-            <p className="mt-3 text-xs text-slate-500">Takipteki toplam alacak</p>
-          </div>
+      <ConversionSummaryCard loading={loading} growth={growth} formatCurrency={formatCurrency} />
 
-          <div className="stat-card border-l-4 border-l-rose-500">
-            <p className="text-sm text-slate-500">Geciken Tahsilat</p>
-            <p className="mt-2 text-3xl font-bold text-rose-700">{formatCurrency(stats.overdueReceivable)}</p>
-            <p className="mt-3 text-xs text-slate-500">Vadesi gecmis alacak</p>
-          </div>
+      <AgingBucketsCard loading={loading} stats={stats} formatCurrency={formatCurrency} />
 
-          <div className="stat-card border-l-4 border-l-sky-500">
-            <p className="text-sm text-slate-500">Takipteki Fatura</p>
-            <p className="mt-2 text-3xl font-bold text-sky-700">{stats.pendingInvoiceCount}</p>
-            <p className="mt-3 text-xs text-slate-500">Odeme bekleyen fatura adedi</p>
-          </div>
-
-          <div className="card bg-gradient-to-br from-brand-600 via-brand-600 to-brand-700 text-white">
-            <p className="text-sm text-brand-100">Toplam Musteri</p>
-            <p className="mt-2 text-3xl font-bold">{stats.totalCustomers}</p>
-            <p className="mt-3 text-xs text-brand-100">Guncelleme: {updatedAt}</p>
-          </div>
-        </div>
-      ) : null}
-
-      {!loading ? (
-        <div className="card">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Donusum Ozeti</h3>
-              <p className="mt-1 text-sm text-slate-600">Son {growth.periodDays || 0} gun</p>
-            </div>
-            <p className="text-xs text-slate-500">Saglik skoru: {growth.health?.score ?? 0}</p>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Tekliften Faturaya</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">%{growth.funnel?.quoteToInvoiceRate ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Faturadan Tahsilata</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">%{growth.funnel?.invoiceToPaidRate ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Kesilen Tutar</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">{formatCurrency(growth.revenue?.issued || 0)}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Tahsil Edilen</p>
-              <p className="mt-1 text-xl font-bold text-emerald-700">
-                {formatCurrency(growth.revenue?.collected || 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {!loading ? (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-slate-900">Gecikme Yaslandirmasi</h3>
-          <p className="mt-1 text-sm text-slate-600">Gecikmenin gun dagilimi</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs font-semibold text-amber-700">0-7 Gun</p>
-              <p className="mt-1 text-lg font-bold text-amber-700">
-                {formatCurrency(stats.overdueBuckets?.days0to7)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
-              <p className="text-xs font-semibold text-orange-700">8-30 Gun</p>
-              <p className="mt-1 text-lg font-bold text-orange-700">
-                {formatCurrency(stats.overdueBuckets?.days8to30)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
-              <p className="text-xs font-semibold text-rose-700">31+ Gun</p>
-              <p className="mt-1 text-lg font-bold text-rose-700">
-                {formatCurrency(stats.overdueBuckets?.days31plus)}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {!loading ? (
-        <div className="card overflow-x-auto">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-900">Son Hareketler</h3>
-            <p className="text-xs text-slate-500">Son 8 kayit</p>
-          </div>
-
-          <table className="mt-4 min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-500">
-                <th className="py-2 pr-4">Zaman</th>
-                <th className="py-2 pr-4">Islem</th>
-                <th className="py-2 pr-4">Kaynak</th>
-                <th className="py-2 pr-4">Detay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activities.map((activity) => (
-                <tr key={activity.id} className="border-b border-slate-100">
-                  <td className="table-cell-muted py-3 pr-4">{formatDateTime(activity.createdAt)}</td>
-                  <td className="py-3 pr-4 font-medium text-slate-800">{activityEventLabel(activity.eventType)}</td>
-                  <td className="table-cell-muted py-3 pr-4">{activityResourceLabel(activity)}</td>
-                  <td className="table-cell-muted py-3 pr-4">{activityDetail(activity)}</td>
-                </tr>
-              ))}
-              {!activities.length ? (
-                <tr>
-                  <td className="py-8 text-center text-slate-500" colSpan={4}>
-                    Bu donem icin kayit bulunamadi.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+      <RecentActivitiesCard
+        loading={loading}
+        activities={activities}
+        formatDateTime={formatDateTime}
+        activityEventLabel={activityEventLabel}
+        activityResourceLabel={activityResourceLabel}
+        activityDetail={activityDetail}
+      />
     </div>
   );
 }

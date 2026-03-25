@@ -10,26 +10,26 @@ async function login(page) {
 
 test('user can create customer, quote, and invoice from quote', async ({ page }) => {
   const suffix = Date.now().toString().slice(-6);
-  const customerName = `E2E Client ${suffix}`;
+  const customerName = `E2E Musteri ${suffix}`;
   const customerEmail = `e2e-${suffix}@teklifim.local`;
 
   await login(page);
 
-  await page.getByRole('link', { name: 'Clientlar' }).click();
-  await expect(page.getByRole('heading', { name: 'Clientlar' })).toBeVisible();
+  await page.getByRole('link', { name: 'Musteriler' }).click();
+  await expect(page.getByRole('heading', { name: 'Musteriler' })).toBeVisible();
 
   const customerForm = page.locator('form').first();
   await customerForm.locator('input').nth(0).fill(customerName);
   await customerForm.locator('input').nth(1).fill('+90 555 111 22 33');
   await customerForm.locator('input').nth(2).fill(customerEmail);
   await customerForm.locator('input').nth(3).fill('Kadikoy / Istanbul');
-  await page.getByRole('button', { name: 'Client Ekle' }).click();
+  await page.getByRole('button', { name: 'Musteri Ekle' }).click();
 
-  await expect(page.getByText('Yeni client kaydi eklendi.')).toBeVisible();
+  await expect(page.getByText('Yeni musteri kaydi eklendi.')).toBeVisible();
   await expect(page.locator('tr', { hasText: customerName })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Teklif Akisi' }).click();
-  await expect(page.getByRole('heading', { name: 'Teklif Akisi' })).toBeVisible();
+  await page.getByRole('link', { name: 'Teklifler' }).click();
+  await expect(page.getByRole('heading', { name: 'Teklifler' })).toBeVisible();
 
   const quoteCustomerSelect = page.locator('select').first();
   await quoteCustomerSelect.selectOption({ label: customerName });
@@ -38,7 +38,7 @@ test('user can create customer, quote, and invoice from quote', async ({ page })
   await page.getByPlaceholder('Birim fiyat').first().fill('1250');
   await page.getByRole('button', { name: 'Teklifi Kaydet' }).click();
 
-  await expect(page.getByText('Teklif dosyasi kaydedildi.')).toBeVisible();
+  await expect(page.getByText('Teklif kaydedildi.')).toBeVisible();
   const quoteRow = page.locator('tr', { hasText: customerName }).first();
   await expect(quoteRow).toBeVisible();
 
@@ -46,14 +46,14 @@ test('user can create customer, quote, and invoice from quote', async ({ page })
   expect(quoteNumber).toBeTruthy();
 
   await quoteRow.getByRole('link', { name: 'Detay' }).click();
-  await expect(page.getByRole('heading', { name: 'Teklif Dosyasi' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teklif Detayi' })).toBeVisible();
   await expect(page.getByText(quoteNumber || '')).toBeVisible();
 
   await page.getByRole('link', { name: 'Listeye Don' }).click();
-  await expect(page.getByRole('heading', { name: 'Teklif Akisi' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teklifler' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Fatura & Tahsilat' }).click();
-  await expect(page.getByRole('heading', { name: 'Fatura ve Tahsilat' })).toBeVisible();
+  await page.getByRole('link', { name: 'Faturalar' }).click();
+  await expect(page.getByRole('heading', { name: 'Faturalar' })).toBeVisible();
 
   const fromQuoteSelect = page.locator('select').first();
   const quoteOptions = fromQuoteSelect.locator('option').filter({ hasText: customerName });
@@ -65,14 +65,14 @@ test('user can create customer, quote, and invoice from quote', async ({ page })
     await fromQuoteSelect.selectOption(quoteOptionValue);
   }
 
-  await page.getByRole('button', { name: 'Fatura Dosyasina Donustur' }).click();
-  await expect(page.getByText('Teklif, fatura dosyasina donusturuldu.')).toBeVisible();
+  await page.getByRole('button', { name: 'Olustur' }).click();
+  await expect(page.getByText('Teklif faturaya donusturuldu.')).toBeVisible();
 
   const invoiceRow = page.locator('tr', { hasText: customerName }).first();
   await expect(invoiceRow).toBeVisible();
   await invoiceRow.getByRole('link', { name: 'Detay' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Fatura Dosyasi' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Fatura Detayi' })).toBeVisible();
   await expect(page.getByText('Kaynak Teklif:')).toBeVisible();
 
   const quoteSourceLink = page.locator('a', { hasText: /^#/ }).first();
@@ -80,5 +80,5 @@ test('user can create customer, quote, and invoice from quote', async ({ page })
   await quoteSourceLink.click();
 
   await expect(page).toHaveURL(/\/quotes\/\d+$/);
-  await expect(page.getByRole('heading', { name: 'Teklif Dosyasi' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teklif Detayi' })).toBeVisible();
 });

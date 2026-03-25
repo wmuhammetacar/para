@@ -11,19 +11,19 @@ async function login(page) {
 test('user can login and view dashboard', async ({ page }) => {
   await login(page);
 
-  await expect(page.getByRole('heading', { name: 'Ajans Operasyon Paneli' })).toBeVisible();
-  await expect(page.getByText('Toplam Kesilen Ciro')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Panel' })).toBeVisible();
+  await expect(page.getByText('Acik Tahsilat')).toBeVisible();
 });
 
 test('user can navigate with sidebar', async ({ page }) => {
   await login(page);
 
-  await page.getByRole('link', { name: 'Clientlar' }).click();
-  await expect(page.getByRole('heading', { name: 'Clientlar' })).toBeVisible();
+  await page.getByRole('link', { name: 'Musteriler' }).click();
+  await expect(page.getByRole('heading', { name: 'Musteriler' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Teklif Akisi' }).click();
-  await expect(page.getByRole('heading', { name: 'Teklif Akisi' })).toBeVisible();
+  await page.getByRole('link', { name: 'Teklifler' }).click();
+  await expect(page.getByRole('heading', { name: 'Teklifler' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Fatura & Tahsilat' }).click();
-  await expect(page.getByRole('heading', { name: 'Fatura ve Tahsilat' })).toBeVisible();
+  await page.getByRole('link', { name: 'Faturalar' }).click();
+  await expect(page.getByRole('heading', { name: 'Faturalar' })).toBeVisible();
 });

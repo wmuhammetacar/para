@@ -3,6 +3,7 @@ import { apiRequest, formatDate } from '../api';
 import PageHeader from '../components/PageHeader';
 import { ACTION_LABELS, EMPTY_STATE_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const emptyForm = {
   name: '',
@@ -17,7 +18,7 @@ export default function CustomersPage() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [pagination, setPagination] = useState({
@@ -77,14 +78,6 @@ export default function CustomersPage() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [search]);
 
   useEffect(() => {
     loadCustomers();

@@ -7,6 +7,7 @@ import { apiRequest, downloadPdf, formatCurrency, formatDate } from '../api';
 import { mergePresetItems } from '../constants/agencyPresets';
 import { ACTION_LABELS, EMPTY_STATE_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const emptyItem = { name: '', quantity: 1, unitPrice: 0 };
 
@@ -18,7 +19,7 @@ export default function QuotesPage() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [pagination, setPagination] = useState({
@@ -102,14 +103,6 @@ export default function QuotesPage() {
       setError(fetchError.message);
     }
   }
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [search]);
 
   useEffect(() => {
     loadQuotes();

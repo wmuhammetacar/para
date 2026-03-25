@@ -1,617 +1,51 @@
 import { Router } from 'express';
 import { all, get, run, withDbTransaction } from '../db.js';
-import { authenticate } from '../middleware/auth.js';
 import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
+import { authenticate } from '../middleware/auth.js';
 import { buildDefaultReminderMessage, processReminderQueue } from '../services/reminderQueue.js';
+import {
+  assertUniqueInvoiceNumber,
+  countInvoices,
+  countReminderOpsJobs,
+  findCustomer,
+  getInvoiceWithItems,
+  getReminderJobById,
+  listExistingInvoiceIds,
+  listInvoices,
+  listReminderJobs,
+  listReminderOpsErrorBreakdown,
+  listReminderOpsJobs,
+  listReminderOpsSummary
+} from '../utils/invoiceRepository.js';
+import {
+  getReminderPolicyFromEnv,
+  getTodayIsoDate,
+  normalizeEntityId,
+  normalizeListLimit,
+  normalizeListPage,
+  normalizeListQuery,
+  normalizeListStatusFilter,
+  normalizePaymentStatus,
+  normalizeReminderChannel,
+  normalizeReminderMessage,
+  normalizeReminderOpsChannel,
+  normalizeReminderOpsLimit,
+  normalizeReminderOpsStatus,
+  normalizeReminderRecipient,
+  normalizeWithMeta,
+  parseInvoiceIds
+} from '../utils/invoiceValidation.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { buildDocumentNumber, normalizeDate, normalizeDocumentNumber, sanitizeItems } from '../utils/documents.js';
-import { badRequest, conflict, notFound } from '../utils/httpErrors.js';
+import { badRequest, notFound } from '../utils/httpErrors.js';
 import { assertPlanLimit } from '../utils/plans.js';
 import { writeDocumentPdf } from '../utils/pdf.js';
 
 const router = Router();
-const DEFAULT_REMINDER_MAX_RETRY_COUNT = 3;
-const DEFAULT_LIST_LIMIT = 20;
-const MAX_LIST_LIMIT = 100;
-
-function resolvePositiveIntEnv(value, fallback) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-const REMINDER_MAX_RETRY_COUNT = resolvePositiveIntEnv(
-  process.env.REMINDER_MAX_RETRY_COUNT,
-  DEFAULT_REMINDER_MAX_RETRY_COUNT
-);
-const REMINDER_RETRY_BACKOFF_MINUTES = typeof process.env.REMINDER_RETRY_BACKOFF_MINUTES === 'string'
-  ? process.env.REMINDER_RETRY_BACKOFF_MINUTES
-      .split(',')
-      .map((part) => Number(part.trim()))
-      .filter((part) => Number.isInteger(part) && part > 0)
-  : [];
+const reminderPolicy = getReminderPolicyFromEnv();
 
 router.use(authenticate);
 router.use(abuseRateLimit);
-
-async function findCustomer(userId, customerId) {
-  return get('SELECT id, name, phone, email, address FROM customers WHERE id = ? AND user_id = ?', [
-    customerId,
-    userId
-  ]);
-}
-
-async function assertUniqueInvoiceNumber(userId, invoiceNumber, excludeId = null) {
-  if (!invoiceNumber) {
-    return;
-  }
-
-  const duplicate = await get(
-    `
-    SELECT id
-    FROM invoices
-    WHERE user_id = ? AND invoice_number = ? AND (? IS NULL OR id <> ?)
-    LIMIT 1
-    `,
-    [userId, invoiceNumber, excludeId, excludeId]
-  );
-
-  if (duplicate) {
-    throw conflict('Bu fatura numarasi zaten kullanimda.');
-  }
-}
-
-function normalizePaymentStatus(value, field = 'paymentStatus') {
-  if (value === undefined || value === null || value === '') {
-    return 'pending';
-  }
-
-  const status = String(value).trim().toLowerCase();
-  if (status === 'pending' || status === 'paid') {
-    return status;
-  }
-
-  throw badRequest('Odeme durumu gecersiz. Desteklenen degerler: pending, paid.', [
-    { field, rule: 'enum', values: ['pending', 'paid'] }
-  ]);
-}
-
-function getTodayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function normalizeListStatusFilter(value) {
-  if (value === undefined || value === null || value === '') {
-    return 'all';
-  }
-
-  const status = String(value).trim().toLowerCase();
-  if (['all', 'pending', 'paid', 'overdue'].includes(status)) {
-    return status;
-  }
-
-  throw badRequest('Durum filtresi gecersiz. Desteklenen degerler: all, pending, paid, overdue.', [
-    { field: 'status', rule: 'enum', values: ['all', 'pending', 'paid', 'overdue'] }
-  ]);
-}
-
-function normalizeListLimit(value) {
-  if (value === undefined || value === null || value === '') {
-    return DEFAULT_LIST_LIMIT;
-  }
-
-  const limit = Number(value);
-  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIST_LIMIT) {
-    throw badRequest(`Limit 1 ile ${MAX_LIST_LIMIT} arasinda bir tam sayi olmalidir.`, [
-      { field: 'limit', rule: 'range', min: 1, max: MAX_LIST_LIMIT }
-    ]);
-  }
-
-  return limit;
-}
-
-function normalizeListPage(value) {
-  if (value === undefined || value === null || value === '') {
-    return 1;
-  }
-
-  const page = Number(value);
-  if (!Number.isInteger(page) || page < 1) {
-    throw badRequest('Page degeri 1 veya daha buyuk bir tam sayi olmalidir.', [
-      { field: 'page', rule: 'min', min: 1 }
-    ]);
-  }
-
-  return page;
-}
-
-function normalizeListQuery(value) {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  const query = String(value).trim();
-  if (!query) {
-    return '';
-  }
-
-  if (query.length > 120) {
-    throw badRequest('Arama metni en fazla 120 karakter olabilir.', [
-      { field: 'q', rule: 'maxLength', max: 120 }
-    ]);
-  }
-
-  return query;
-}
-
-function normalizeWithMeta(value) {
-  if (value === undefined || value === null || value === '') {
-    return false;
-  }
-
-  const normalized = String(value).trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes';
-}
-
-function invoiceMatchesStatusFilter(invoice, filter) {
-  if (filter === 'all') {
-    return true;
-  }
-
-  const paymentStatus = invoice.payment_status || 'pending';
-
-  if (filter === 'pending') {
-    return paymentStatus === 'pending';
-  }
-
-  if (filter === 'paid') {
-    return paymentStatus === 'paid';
-  }
-
-  if (filter === 'overdue') {
-    return Number(invoice.is_overdue) === 1;
-  }
-
-  return true;
-}
-
-function buildInvoiceListWhereClause(userId, options = {}) {
-  const { status = 'all', query = '' } = options;
-  const whereParts = ['i.user_id = ?'];
-  const params = [userId];
-
-  if (query) {
-    const searchValue = `%${query.toLowerCase()}%`;
-    whereParts.push(
-      '(LOWER(i.invoice_number) LIKE ? OR LOWER(c.name) LIKE ? OR LOWER(i.date) LIKE ? OR LOWER(COALESCE(i.due_date, \'\')) LIKE ?)'
-    );
-    params.push(searchValue, searchValue, searchValue, searchValue);
-  }
-
-  if (status === 'pending') {
-    whereParts.push('i.payment_status = \'pending\'');
-  } else if (status === 'paid') {
-    whereParts.push('i.payment_status = \'paid\'');
-  } else if (status === 'overdue') {
-    whereParts.push('i.payment_status = \'pending\' AND date(i.due_date) < date(\'now\')');
-  }
-
-  return {
-    whereSql: whereParts.join(' AND '),
-    params
-  };
-}
-
-function parseInvoiceIds(value) {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw badRequest('En az bir fatura secmelisiniz.', [{ field: 'invoiceIds', rule: 'minItems' }]);
-  }
-
-  const ids = [...new Set(value.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
-
-  if (!ids.length) {
-    throw badRequest('Secilen faturalar gecersiz.', [{ field: 'invoiceIds', rule: 'integerArray' }]);
-  }
-
-  return ids;
-}
-
-function normalizeReminderChannel(value) {
-  if (value === undefined || value === null || value === '') {
-    throw badRequest('Hatirlatma kanali zorunludur.', [{ field: 'channel', rule: 'required' }]);
-  }
-
-  const channel = String(value).trim().toLowerCase();
-  if (channel === 'whatsapp' || channel === 'email') {
-    return channel;
-  }
-
-  throw badRequest('Hatirlatma kanali gecersiz. Desteklenen degerler: whatsapp, email.', [
-    { field: 'channel', rule: 'enum', values: ['whatsapp', 'email'] }
-  ]);
-}
-
-function normalizeReminderRecipient(channel, value) {
-  const recipient = String(value || '').trim();
-  if (!recipient) {
-    throw badRequest('Hatirlatma alicisi bos olamaz.', [{ field: 'recipient', rule: 'required' }]);
-  }
-
-  if (channel === 'email') {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(recipient)) {
-      throw badRequest('E-posta alicisi gecersiz.', [{ field: 'recipient', rule: 'email' }]);
-    }
-    return recipient;
-  }
-
-  const digits = recipient.replace(/\D/g, '');
-  const normalizedPhone =
-    digits.length === 10
-      ? `90${digits}`
-      : digits.length === 11 && digits.startsWith('0')
-        ? `90${digits.slice(1)}`
-        : digits;
-
-  if (normalizedPhone.length < 11) {
-    throw badRequest('WhatsApp numarasi gecersiz.', [{ field: 'recipient', rule: 'phone' }]);
-  }
-
-  return normalizedPhone;
-}
-
-function normalizeReminderMessage(value, fallbackMessage) {
-  const message = String(value || fallbackMessage || '').trim();
-
-  if (!message) {
-    throw badRequest('Hatirlatma mesaji bos olamaz.', [{ field: 'message', rule: 'required' }]);
-  }
-
-  if (message.length > 1200) {
-    throw badRequest('Hatirlatma mesaji en fazla 1200 karakter olabilir.', [
-      { field: 'message', rule: 'maxLength', value: 1200 }
-    ]);
-  }
-
-  return message;
-}
-
-function normalizeReminderOpsStatus(value) {
-  if (value === undefined || value === null || value === '') {
-    return 'all';
-  }
-
-  const status = String(value).trim().toLowerCase();
-  if (status === 'all' || status === 'queued' || status === 'sent' || status === 'failed') {
-    return status;
-  }
-
-  throw badRequest('Hatirlatma durum filtresi gecersiz. Desteklenen degerler: all, queued, sent, failed.', [
-    { field: 'status', rule: 'enum', values: ['all', 'queued', 'sent', 'failed'] }
-  ]);
-}
-
-function normalizeReminderOpsChannel(value) {
-  if (value === undefined || value === null || value === '') {
-    return 'all';
-  }
-
-  const channel = String(value).trim().toLowerCase();
-  if (channel === 'all' || channel === 'whatsapp' || channel === 'email') {
-    return channel;
-  }
-
-  throw badRequest('Hatirlatma kanal filtresi gecersiz. Desteklenen degerler: all, whatsapp, email.', [
-    { field: 'channel', rule: 'enum', values: ['all', 'whatsapp', 'email'] }
-  ]);
-}
-
-function normalizeReminderOpsLimit(value) {
-  if (value === undefined || value === null || value === '') {
-    return 10;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
-    throw badRequest('Limit 1 ile 100 arasinda bir tam sayi olmalidir.', [
-      { field: 'limit', rule: 'range', min: 1, max: 100 }
-    ]);
-  }
-
-  return parsed;
-}
-
-function buildReminderOpsWhereClause(userId, filters) {
-  const { status, channel } = filters;
-  const whereParts = ['r.user_id = ?'];
-  const params = [userId];
-
-  if (status !== 'all') {
-    whereParts.push('r.status = ?');
-    params.push(status);
-  }
-
-  if (channel !== 'all') {
-    whereParts.push('r.channel = ?');
-    params.push(channel);
-  }
-
-  return {
-    whereSql: whereParts.join(' AND '),
-    params
-  };
-}
-
-async function listReminderJobs(userId, invoiceId) {
-  return all(
-    `
-    SELECT
-      id,
-      invoice_id,
-      channel,
-      recipient,
-      message,
-      status,
-      delivery_url,
-      error_message,
-      retry_count,
-      last_retry_at,
-      next_attempt_at,
-      created_at,
-      processed_at
-    FROM reminder_jobs
-    WHERE user_id = ? AND invoice_id = ?
-    ORDER BY id DESC
-    `,
-    [userId, invoiceId]
-  );
-}
-
-async function listReminderOpsSummary(userId) {
-  const [summary, queueAging] = await Promise.all([
-    get(
-      `
-      SELECT
-        COUNT(*) AS total,
-        SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) AS queued,
-        SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
-        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
-      SUM(
-        CASE
-          WHEN status = 'failed' AND datetime(COALESCE(processed_at, created_at)) >= datetime('now', '-1 day')
-          THEN 1
-            ELSE 0
-          END
-        ) AS failed_last_24h,
-        SUM(CASE WHEN status = 'queued' AND retry_count > 0 THEN 1 ELSE 0 END) AS scheduled_retries,
-        SUM(CASE WHEN channel = 'whatsapp' THEN 1 ELSE 0 END) AS whatsapp,
-        SUM(CASE WHEN channel = 'email' THEN 1 ELSE 0 END) AS email
-      FROM reminder_jobs
-      WHERE user_id = ?
-      `,
-      [userId]
-    ),
-    get(
-      `
-      SELECT
-        CAST((julianday('now') - julianday(MIN(created_at))) * 24 * 60 AS INTEGER) AS oldest_queued_minutes
-      FROM reminder_jobs
-      WHERE user_id = ? AND status = 'queued'
-      `,
-      [userId]
-    )
-  ]);
-
-  const total = Number(summary?.total) || 0;
-  const failed = Number(summary?.failed) || 0;
-
-  return {
-    total,
-    queued: Number(summary?.queued) || 0,
-    sent: Number(summary?.sent) || 0,
-    failed,
-    failedLast24h: Number(summary?.failed_last_24h) || 0,
-    scheduledRetries: Number(summary?.scheduled_retries) || 0,
-    whatsapp: Number(summary?.whatsapp) || 0,
-    email: Number(summary?.email) || 0,
-    oldestQueuedMinutes:
-      queueAging?.oldest_queued_minutes === null || queueAging?.oldest_queued_minutes === undefined
-        ? null
-        : Math.max(0, Number(queueAging.oldest_queued_minutes) || 0),
-    failedRate: total > 0 ? Number(((failed / total) * 100).toFixed(1)) : 0
-  };
-}
-
-async function countReminderOpsJobs(userId, filters) {
-  const { whereSql, params } = buildReminderOpsWhereClause(userId, filters);
-
-  const countRow = await get(
-    `
-    SELECT COUNT(*) AS total
-    FROM reminder_jobs r
-    WHERE ${whereSql}
-    `,
-    params
-  );
-
-  return Number(countRow?.total) || 0;
-}
-
-async function listReminderOpsJobs(userId, filters) {
-  const { limit } = filters;
-  const { whereSql, params } = buildReminderOpsWhereClause(userId, filters);
-
-  return all(
-    `
-    SELECT
-      r.id,
-      r.invoice_id,
-      r.channel,
-      r.recipient,
-      r.message,
-      r.status,
-      r.delivery_url,
-      r.error_message,
-      r.retry_count,
-      r.last_retry_at,
-      r.next_attempt_at,
-      r.created_at,
-      r.processed_at,
-      i.invoice_number,
-      c.name AS customer_name
-    FROM reminder_jobs r
-    JOIN invoices i ON i.id = r.invoice_id
-    JOIN customers c ON c.id = i.customer_id
-    WHERE ${whereSql}
-    ORDER BY
-      CASE
-        WHEN r.status = 'failed' THEN 0
-        WHEN r.status = 'queued' THEN 1
-        ELSE 2
-      END ASC,
-      r.id DESC
-    LIMIT ?
-    `,
-    [...params, limit]
-  );
-}
-
-async function getReminderJobById(userId, reminderId) {
-  return get(
-    `
-    SELECT
-      r.id,
-      r.invoice_id,
-      r.channel,
-      r.recipient,
-      r.message,
-      r.status,
-      r.delivery_url,
-      r.error_message,
-      r.retry_count,
-      r.last_retry_at,
-      r.next_attempt_at,
-      r.created_at,
-      r.processed_at,
-      i.invoice_number,
-      c.name AS customer_name
-    FROM reminder_jobs r
-    JOIN invoices i ON i.id = r.invoice_id
-    JOIN customers c ON c.id = i.customer_id
-    WHERE r.id = ? AND r.user_id = ?
-    `,
-    [reminderId, userId]
-  );
-}
-
-async function listReminderOpsErrorBreakdown(userId, limit = 5) {
-  const normalizedLimit = Number.isInteger(limit) && limit > 0 ? limit : 5;
-
-  return all(
-    `
-    SELECT
-      COALESCE(NULLIF(TRIM(error_message), ''), 'Bilinmeyen hata') AS error_message,
-      COUNT(*) AS total
-    FROM reminder_jobs
-    WHERE user_id = ? AND status = 'failed'
-    GROUP BY COALESCE(NULLIF(TRIM(error_message), ''), 'Bilinmeyen hata')
-    ORDER BY total DESC, error_message ASC
-    LIMIT ?
-    `,
-    [userId, normalizedLimit]
-  );
-}
-
-async function listInvoices(userId, options = {}) {
-  const { status = 'all', query = '', limit = DEFAULT_LIST_LIMIT, offset = 0, useWindow = false } = options;
-  const { whereSql, params } = buildInvoiceListWhereClause(userId, { status, query });
-
-  return all(
-    `
-    SELECT
-      i.id,
-      i.invoice_number,
-      i.date,
-      i.due_date,
-      i.payment_status,
-      i.paid_at,
-      i.total,
-      i.quote_id,
-      CASE
-        WHEN i.payment_status = 'pending' AND date(i.due_date) < date('now') THEN 1
-        ELSE 0
-      END AS is_overdue,
-      c.name AS customer_name
-    FROM invoices i
-    JOIN customers c ON c.id = i.customer_id
-    WHERE ${whereSql}
-    ORDER BY i.id DESC
-    ${useWindow ? 'LIMIT ? OFFSET ?' : ''}
-    `,
-    useWindow ? [...params, limit, offset] : params
-  );
-}
-
-async function countInvoices(userId, options = {}) {
-  const { status = 'all', query = '' } = options;
-  const { whereSql, params } = buildInvoiceListWhereClause(userId, { status, query });
-
-  const row = await get(
-    `
-    SELECT COUNT(*) AS total
-    FROM invoices i
-    JOIN customers c ON c.id = i.customer_id
-    WHERE ${whereSql}
-    `,
-    params
-  );
-
-  return Number(row?.total) || 0;
-}
-
-async function getInvoiceWithItems(userId, invoiceId) {
-  const invoice = await get(
-    `
-    SELECT
-      i.id,
-      i.invoice_number,
-      i.date,
-      i.due_date,
-      i.payment_status,
-      i.paid_at,
-      i.total,
-      i.quote_id,
-      i.customer_id,
-      CASE
-        WHEN i.payment_status = 'pending' AND date(i.due_date) < date('now') THEN 1
-        ELSE 0
-      END AS is_overdue,
-      c.name AS customer_name,
-      c.phone AS customer_phone,
-      c.email AS customer_email,
-      c.address AS customer_address
-    FROM invoices i
-    JOIN customers c ON c.id = i.customer_id
-    WHERE i.id = ? AND i.user_id = ?
-    `,
-    [invoiceId, userId]
-  );
-
-  if (!invoice) {
-    return null;
-  }
-
-  const items = await all(
-    `
-    SELECT id, name, quantity, unit_price, total
-    FROM items
-    WHERE invoice_id = ?
-    ORDER BY id ASC
-    `,
-    [invoiceId]
-  );
-
-  return { ...invoice, items };
-}
 
 router.get('/', async (req, res, next) => {
   try {
@@ -746,10 +180,9 @@ router.post('/', async (req, res, next) => {
         [req.user.id, customerId, quoteId, 'TEMP', date, dueDate, paymentStatus, paidAt, itemResult.total]
       );
 
-      const invoiceNumber =
-        requestedInvoiceNumber
-          ? requestedInvoiceNumber
-          : buildDocumentNumber('FTR', insertInvoice.id, date);
+      const invoiceNumber = requestedInvoiceNumber
+        ? requestedInvoiceNumber
+        : buildDocumentNumber('FTR', insertInvoice.id, date);
 
       await assertUniqueInvoiceNumber(req.user.id, invoiceNumber, insertInvoice.id);
 
@@ -800,15 +233,7 @@ router.patch('/payment/bulk', async (req, res, next) => {
     const paidAt = paymentStatus === 'paid' ? normalizeDate(req.body.paidAt || getTodayIsoDate()) : null;
 
     const placeholders = invoiceIds.map(() => '?').join(', ');
-
-    const existing = await all(
-      `
-      SELECT id
-      FROM invoices
-      WHERE user_id = ? AND id IN (${placeholders})
-      `,
-      [req.user.id, ...invoiceIds]
-    );
+    const existing = await listExistingInvoiceIds(req.user.id, invoiceIds);
 
     if (!existing.length) {
       next(notFound('Secilen faturalar bulunamadi.'));
@@ -890,9 +315,8 @@ router.get('/reminders/ops', async (req, res, next) => {
     res.json({
       filters,
       policy: {
-        maxRetryCount: REMINDER_MAX_RETRY_COUNT,
-        retryBackoffMinutes:
-          REMINDER_RETRY_BACKOFF_MINUTES.length > 0 ? REMINDER_RETRY_BACKOFF_MINUTES : [5, 15, 30]
+        maxRetryCount: reminderPolicy.maxRetryCount,
+        retryBackoffMinutes: reminderPolicy.retryBackoffMinutes
       },
       summary,
       filteredCount,
@@ -909,12 +333,7 @@ router.get('/reminders/ops', async (req, res, next) => {
 
 router.post('/reminders/:reminderId/retry', async (req, res, next) => {
   try {
-    const reminderId = Number(req.params.reminderId);
-
-    if (!Number.isInteger(reminderId) || reminderId <= 0) {
-      next(badRequest('Gecersiz hatirlatma id.', [{ field: 'reminderId', rule: 'integer' }]));
-      return;
-    }
+    const reminderId = normalizeEntityId(req.params.reminderId, 'reminderId', 'Gecersiz hatirlatma id.');
 
     const existingReminder = await getReminderJobById(req.user.id, reminderId);
     if (!existingReminder) {
@@ -932,7 +351,7 @@ router.post('/reminders/:reminderId/retry', async (req, res, next) => {
     }
 
     const currentRetryCount = Number(existingReminder.retry_count) || 0;
-    if (currentRetryCount >= REMINDER_MAX_RETRY_COUNT) {
+    if (currentRetryCount >= reminderPolicy.maxRetryCount) {
       await recordAuditLog({
         req,
         userId: req.user.id,
@@ -942,12 +361,12 @@ router.post('/reminders/:reminderId/retry', async (req, res, next) => {
         metadata: {
           reminderId,
           retryCount: currentRetryCount,
-          maxRetryCount: REMINDER_MAX_RETRY_COUNT
+          maxRetryCount: reminderPolicy.maxRetryCount
         }
       });
       next(
         badRequest('Yeniden deneme limiti asildi. Lutfen yeni bir hatirlatma olusturun.', [
-          { field: 'retryCount', rule: 'max', max: REMINDER_MAX_RETRY_COUNT }
+          { field: 'retryCount', rule: 'max', max: reminderPolicy.maxRetryCount }
         ])
       );
       return;
@@ -982,7 +401,7 @@ router.post('/reminders/:reminderId/retry', async (req, res, next) => {
         channel: updatedReminder?.channel || existingReminder.channel,
         status: updatedReminder?.status || 'queued',
         retryCount: updatedReminder?.retry_count ?? currentRetryCount + 1,
-        maxRetryCount: REMINDER_MAX_RETRY_COUNT
+        maxRetryCount: reminderPolicy.maxRetryCount
       }
     });
 
@@ -994,12 +413,7 @@ router.post('/reminders/:reminderId/retry', async (req, res, next) => {
 
 router.get('/:id/reminders', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
 
     const existing = await get('SELECT id FROM invoices WHERE id = ? AND user_id = ?', [id, req.user.id]);
     if (!existing) {
@@ -1016,12 +430,7 @@ router.get('/:id/reminders', async (req, res, next) => {
 
 router.post('/:id/reminders', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
 
     const invoice = await getInvoiceWithItems(req.user.id, id);
     if (!invoice) {
@@ -1110,12 +519,7 @@ router.post('/:id/reminders', async (req, res, next) => {
 
 router.get('/:id/pdf', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
 
     const invoice = await getInvoiceWithItems(req.user.id, id);
 
@@ -1150,12 +554,7 @@ router.get('/:id/pdf', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
 
     const invoice = await getInvoiceWithItems(req.user.id, id);
 
@@ -1172,13 +571,8 @@ router.get('/:id', async (req, res, next) => {
 
 router.put('/:id', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
     const customerId = Number(req.body.customerId);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
 
     if (!Number.isInteger(customerId) || customerId <= 0) {
       next(badRequest('Gecerli bir musteri secin.', [{ field: 'customerId', rule: 'integer' }]));
@@ -1208,16 +602,10 @@ router.put('/:id', async (req, res, next) => {
     const dueDate = normalizeDate(req.body.dueDate || existing.due_date || date);
     const paymentStatus = normalizePaymentStatus(req.body.paymentStatus ?? existing.payment_status);
     const requestedInvoiceNumber = normalizeDocumentNumber(req.body.invoiceNumber, 'invoiceNumber');
-    const paidAt =
-      paymentStatus === 'paid'
-        ? normalizeDate(req.body.paidAt || existing.paid_at || date)
-        : null;
+    const paidAt = paymentStatus === 'paid' ? normalizeDate(req.body.paidAt || existing.paid_at || date) : null;
 
     await withDbTransaction(async () => {
-      const invoiceNumber =
-        requestedInvoiceNumber
-          ? requestedInvoiceNumber
-          : existing.invoice_number;
+      const invoiceNumber = requestedInvoiceNumber ? requestedInvoiceNumber : existing.invoice_number;
 
       await assertUniqueInvoiceNumber(req.user.id, invoiceNumber, id);
 
@@ -1265,12 +653,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.patch('/:id/payment', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
 
     const existing = await get('SELECT id, payment_status FROM invoices WHERE id = ? AND user_id = ?', [
       id,
@@ -1312,12 +695,7 @@ router.patch('/:id/payment', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      next(badRequest('Gecersiz fatura id.', [{ field: 'id', rule: 'integer' }]));
-      return;
-    }
+    const id = normalizeEntityId(req.params.id, 'id', 'Gecersiz fatura id.');
 
     const existing = await get('SELECT id FROM invoices WHERE id = ? AND user_id = ?', [id, req.user.id]);
 
