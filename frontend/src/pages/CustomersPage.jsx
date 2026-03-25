@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiRequest, formatDate } from '../api';
 import PageHeader from '../components/PageHeader';
 import { ACTION_LABELS, EMPTY_STATE_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useTimedMessage } from '../hooks/useTimedMessage';
+import { DEFAULT_PAGINATION, resolvePaginatedResponse } from '../utils/pagination';
 
 const emptyForm = {
   name: '',
@@ -21,19 +23,11 @@ export default function CustomersPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
+  const [pagination, setPagination] = useState({ ...DEFAULT_PAGINATION, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { message: success, showMessage: showSuccess } = useTimedMessage();
   const [saving, setSaving] = useState(false);
-  const successTimerRef = useRef(null);
 
   async function loadCustomers() {
     try {
@@ -51,27 +45,12 @@ export default function CustomersPage() {
 
       const response = await apiRequest(`/customers?${params.toString()}`, { token });
 
-      if (Array.isArray(response)) {
-        setCustomers(response);
-        setPagination({
-          page,
-          limit,
-          total: response.length,
-          totalPages: response.length ? 1 : 0,
-          hasNextPage: false,
-          hasPrevPage: page > 1
-        });
-      } else {
-        setCustomers(Array.isArray(response?.data) ? response.data : []);
-        setPagination({
-          page: Number(response?.pagination?.page) || page,
-          limit: Number(response?.pagination?.limit) || limit,
-          total: Number(response?.pagination?.total) || 0,
-          totalPages: Number(response?.pagination?.totalPages) || 0,
-          hasNextPage: Boolean(response?.pagination?.hasNextPage),
-          hasPrevPage: Boolean(response?.pagination?.hasPrevPage)
-        });
-      }
+      const { rows, pagination: nextPagination } = resolvePaginatedResponse(response, {
+        page,
+        limit
+      });
+      setCustomers(rows);
+      setPagination(nextPagination);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
@@ -81,25 +60,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     loadCustomers();
-  }, [page, limit, debouncedSearch]);
-
-  useEffect(() => {
-    return () => {
-      if (successTimerRef.current) {
-        clearTimeout(successTimerRef.current);
-      }
-    };
-  }, []);
-
-  function showSuccess(message) {
-    setSuccess(message);
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-    }
-    successTimerRef.current = setTimeout(() => {
-      setSuccess('');
-    }, 2500);
-  }
+  }, [page, limit, debouncedSearch, token]);
 
   function resetForm() {
     setForm(emptyForm);

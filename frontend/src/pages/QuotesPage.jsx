@@ -8,6 +8,8 @@ import { mergePresetItems } from '../constants/agencyPresets';
 import { ACTION_LABELS, EMPTY_STATE_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useTimedMessage } from '../hooks/useTimedMessage';
+import { DEFAULT_PAGINATION, resolvePaginatedResponse } from '../utils/pagination';
 
 const emptyItem = { name: '', quantity: 1, unitPrice: 0 };
 
@@ -22,24 +24,16 @@ export default function QuotesPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
+  const [pagination, setPagination] = useState({ ...DEFAULT_PAGINATION, limit: 10 });
   const [form, setForm] = useState({
     customerId: '',
     date: new Date().toISOString().slice(0, 10),
     items: [{ ...emptyItem }]
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { message: success, showMessage: showSuccess } = useTimedMessage();
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
-  const successTimerRef = useRef(null);
   const formCardRef = useRef(null);
 
   const total = useMemo(
@@ -67,27 +61,12 @@ export default function QuotesPage() {
 
       const quotesData = await apiRequest(`/quotes?${params.toString()}`, { token });
 
-      if (Array.isArray(quotesData)) {
-        setQuotes(quotesData);
-        setPagination({
-          page,
-          limit,
-          total: quotesData.length,
-          totalPages: quotesData.length ? 1 : 0,
-          hasNextPage: false,
-          hasPrevPage: page > 1
-        });
-      } else {
-        setQuotes(Array.isArray(quotesData?.data) ? quotesData.data : []);
-        setPagination({
-          page: Number(quotesData?.pagination?.page) || page,
-          limit: Number(quotesData?.pagination?.limit) || limit,
-          total: Number(quotesData?.pagination?.total) || 0,
-          totalPages: Number(quotesData?.pagination?.totalPages) || 0,
-          hasNextPage: Boolean(quotesData?.pagination?.hasNextPage),
-          hasPrevPage: Boolean(quotesData?.pagination?.hasPrevPage)
-        });
-      }
+      const { rows, pagination: nextPagination } = resolvePaginatedResponse(quotesData, {
+        page,
+        limit
+      });
+      setQuotes(rows);
+      setPagination(nextPagination);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
@@ -111,14 +90,6 @@ export default function QuotesPage() {
   useEffect(() => {
     loadCustomers();
   }, [token]);
-
-  useEffect(() => {
-    return () => {
-      if (successTimerRef.current) {
-        clearTimeout(successTimerRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const editParam = searchParams.get('edit');
@@ -150,16 +121,6 @@ export default function QuotesPage() {
 
     startEdit(quoteId).finally(clearEditQuery);
   }, [searchParams, setSearchParams, editingId]);
-
-  function showSuccess(message) {
-    setSuccess(message);
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-    }
-    successTimerRef.current = setTimeout(() => {
-      setSuccess('');
-    }, 2500);
-  }
 
   function resetForm() {
     setEditingId(null);

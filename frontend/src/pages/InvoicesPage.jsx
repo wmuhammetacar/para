@@ -25,6 +25,8 @@ import PageHeader from '../components/PageHeader';
 import { mergePresetItems } from '../constants/agencyPresets';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useTimedMessage } from '../hooks/useTimedMessage';
+import { DEFAULT_PAGINATION, resolvePaginatedResponse } from '../utils/pagination';
 
 export default function InvoicesPage() {
   const { token } = useAuth();
@@ -40,14 +42,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
+  const [pagination, setPagination] = useState({ ...DEFAULT_PAGINATION, limit: 10 });
   const [fromQuoteId, setFromQuoteId] = useState('');
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
   const [form, setForm] = useState({
@@ -57,7 +52,7 @@ export default function InvoicesPage() {
     items: [{ ...emptyItem }]
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { message: success, showMessage: showSuccess } = useTimedMessage();
   const [savingManual, setSavingManual] = useState(false);
   const [savingFromQuote, setSavingFromQuote] = useState(false);
   const [savingBulkStatus, setSavingBulkStatus] = useState(false);
@@ -67,7 +62,6 @@ export default function InvoicesPage() {
   const [reminderOps, setReminderOps] = useState(emptyReminderOps);
   const [retryingReminderId, setRetryingReminderId] = useState(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
-  const successTimerRef = useRef(null);
   const formCardRef = useRef(null);
 
   const total = useMemo(
@@ -96,27 +90,12 @@ export default function InvoicesPage() {
 
       const invoiceData = await apiRequest(`/invoices?${params.toString()}`, { token });
 
-      if (Array.isArray(invoiceData)) {
-        setInvoices(invoiceData);
-        setPagination({
-          page,
-          limit,
-          total: invoiceData.length,
-          totalPages: invoiceData.length ? 1 : 0,
-          hasNextPage: false,
-          hasPrevPage: page > 1
-        });
-      } else {
-        setInvoices(Array.isArray(invoiceData?.data) ? invoiceData.data : []);
-        setPagination({
-          page: Number(invoiceData?.pagination?.page) || page,
-          limit: Number(invoiceData?.pagination?.limit) || limit,
-          total: Number(invoiceData?.pagination?.total) || 0,
-          totalPages: Number(invoiceData?.pagination?.totalPages) || 0,
-          hasNextPage: Boolean(invoiceData?.pagination?.hasNextPage),
-          hasPrevPage: Boolean(invoiceData?.pagination?.hasPrevPage)
-        });
-      }
+      const { rows, pagination: nextPagination } = resolvePaginatedResponse(invoiceData, {
+        page,
+        limit
+      });
+      setInvoices(rows);
+      setPagination(nextPagination);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
@@ -169,14 +148,6 @@ export default function InvoicesPage() {
   }, [reminderOpsStatusFilter, token]);
 
   useEffect(() => {
-    return () => {
-      if (successTimerRef.current) {
-        clearTimeout(successTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     const editParam = searchParams.get('edit');
     if (!editParam) {
       return;
@@ -206,16 +177,6 @@ export default function InvoicesPage() {
 
     startEdit(invoiceId).finally(clearEditQuery);
   }, [searchParams, setSearchParams, editingId]);
-
-  function showSuccess(message) {
-    setSuccess(message);
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-    }
-    successTimerRef.current = setTimeout(() => {
-      setSuccess('');
-    }, 2500);
-  }
 
   function resetForm() {
     const baseDate = new Date().toISOString().slice(0, 10);

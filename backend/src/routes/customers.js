@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { abuseRateLimit } from '../middleware/abuseRateLimit.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { badRequest, businessRule, notFound } from '../utils/httpErrors.js';
+import { normalizeListLimit, normalizeListPage, normalizeListQuery, normalizeWithMeta } from '../utils/listValidation.js';
 import { assertPlanLimit } from '../utils/plans.js';
 
 const router = Router();
@@ -17,8 +18,6 @@ const MAX_EMAIL_LENGTH = 120;
 const MAX_ADDRESS_LENGTH = 255;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[0-9+().\-\s]*$/;
-const DEFAULT_LIST_LIMIT = 20;
-const MAX_LIST_LIMIT = 100;
 
 function parseCustomerInput(body = {}) {
   return {
@@ -65,64 +64,6 @@ function validateCustomerInput({ name, phone, email, address }) {
       { field: 'address', rule: 'maxLength', max: MAX_ADDRESS_LENGTH }
     ]);
   }
-}
-
-function normalizeListLimit(value) {
-  if (value === undefined || value === null || value === '') {
-    return DEFAULT_LIST_LIMIT;
-  }
-
-  const limit = Number(value);
-  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIST_LIMIT) {
-    throw badRequest(`Limit 1 ile ${MAX_LIST_LIMIT} arasinda bir tam sayi olmalidir.`, [
-      { field: 'limit', rule: 'range', min: 1, max: MAX_LIST_LIMIT }
-    ]);
-  }
-
-  return limit;
-}
-
-function normalizeListPage(value) {
-  if (value === undefined || value === null || value === '') {
-    return 1;
-  }
-
-  const page = Number(value);
-  if (!Number.isInteger(page) || page < 1) {
-    throw badRequest('Page degeri 1 veya daha buyuk bir tam sayi olmalidir.', [
-      { field: 'page', rule: 'min', min: 1 }
-    ]);
-  }
-
-  return page;
-}
-
-function normalizeListQuery(value) {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  const query = String(value).trim();
-  if (!query) {
-    return '';
-  }
-
-  if (query.length > 120) {
-    throw badRequest('Arama metni en fazla 120 karakter olabilir.', [
-      { field: 'q', rule: 'maxLength', max: 120 }
-    ]);
-  }
-
-  return query;
-}
-
-function normalizeWithMeta(value) {
-  if (value === undefined || value === null || value === '') {
-    return false;
-  }
-
-  const normalized = String(value).trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes';
 }
 
 router.get('/', async (req, res, next) => {

@@ -62,6 +62,7 @@ teklifim/
     PRICING_PACKAGES.md
     PILOT_UAT_INTERNAL_REPORT.md
     DEFINITION_OF_DONE.md
+    ENGINEERING_STANDARDS.md
     RELEASE_CHECKLIST.md
     RISK_REGISTER.md
   backend/
@@ -178,6 +179,7 @@ Backend:
 
 ```bash
 cd backend
+npm run lint
 npm run check:syntax
 npm test
 npm run test:coverage
@@ -191,6 +193,7 @@ Frontend:
 
 ```bash
 cd frontend
+npm run lint
 npm run test:run
 npm run test:coverage
 npm run build

@@ -5,9 +5,10 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_PORT="${E2E_BACKEND_PORT:-4011}"
 FRONTEND_PORT="${E2E_FRONTEND_PORT:-5201}"
 
-echo "[1/4] Backend syntax checks"
+echo "[1/4] Backend lint + syntax checks"
 (
   cd "$ROOT_DIR/backend"
+  npm run lint
   npm run check:syntax
 )
 
@@ -17,9 +18,10 @@ echo "[2/4] Backend coverage tests"
   npm run test:coverage
 )
 
-echo "[3/4] Frontend unit tests + build"
+echo "[3/4] Frontend lint + unit tests + build"
 (
   cd "$ROOT_DIR/frontend"
+  npm run lint
   npm run test:run
   npm run build
 )
