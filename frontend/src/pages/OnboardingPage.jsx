@@ -85,7 +85,7 @@ export default function OnboardingPage() {
     <div className="space-y-6">
       <PageHeader
         title="Kurulum"
-        description="Ilk adimlari tamamlayin ve tekliften tahsilata kadar akisiniz hazir olsun."
+        description="Temel adimlari tamamlayin."
         actions={
           <button type="button" className="btn-secondary" onClick={fetchActivation} disabled={loading}>
             {loading ? 'Yenileniyor...' : 'Durumu Yenile'}
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
           <div className="card">
             <p className="text-xs text-slate-500">Kalan Adim</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{activation.remainingSteps}</p>
-            <p className="mt-2 text-xs text-slate-500">Oncelik: temel kayitlari tamamlamak</p>
+            <p className="mt-2 text-xs text-slate-500">Oncelik: temel kayitlar</p>
           </div>
           <div className="card">
             <p className="text-xs text-slate-500">Tahmini Sure</p>
@@ -150,7 +150,7 @@ export default function OnboardingPage() {
       {!loading && activation.quickWins.length > 0 ? (
         <div className="card">
           <h3 className="text-lg font-semibold text-slate-900">Oncelikli Adimlar</h3>
-          <p className="mt-1 text-sm text-slate-600">Ilk kullanimi hizlandiracak adimlari once tamamlayin.</p>
+          <p className="mt-1 text-sm text-slate-600">Hizli baslangic adimlari</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {activation.quickWins.map((quickWin) => (
               <div key={quickWin.key} className="rounded-xl border border-slate-200 bg-slate-50 p-3">

@@ -75,7 +75,7 @@ export default function QuoteDetailPage() {
     <div className="space-y-6">
       <PageHeader
         title="Teklif Detayi"
-        description="Musteri bilgileri ve teklif kalemleri"
+        description="Musteri bilgileri ve kalemler"
         actions={
           <>
             <Link to="/quotes" className="btn-secondary">

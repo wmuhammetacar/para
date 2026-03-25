@@ -5,6 +5,7 @@ import ItemRows from '../components/ItemRows';
 import PageHeader from '../components/PageHeader';
 import { apiRequest, downloadPdf, formatCurrency, formatDate } from '../api';
 import { mergePresetItems } from '../constants/agencyPresets';
+import { ACTION_LABELS, EMPTY_STATE_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
 
 const emptyItem = { name: '', quantity: 1, unitPrice: 0 };
@@ -365,7 +366,7 @@ export default function QuotesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Teklifler"
-        description="Teklif olusturun, takip edin ve PDF olarak gonderin."
+        description="Teklif olusturun ve takip edin."
       />
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
@@ -417,7 +418,7 @@ export default function QuotesPage() {
               <div className="table-actions">
                 {editingId ? (
                   <button type="button" className="btn-secondary" onClick={resetForm}>
-                    Iptal
+                    {ACTION_LABELS.cancel}
                   </button>
                 ) : null}
                 <button type="submit" className="btn-primary" disabled={saving || customers.length === 0}>
@@ -482,10 +483,10 @@ export default function QuotesPage() {
                 <td className="py-3">
                   <div className="table-actions">
                     <Link to={`/quotes/${quote.id}`} className="btn-secondary">
-                      Detay
+                      {ACTION_LABELS.detail}
                     </Link>
                     <button type="button" className="btn-secondary" onClick={() => startEdit(quote.id)}>
-                      Duzenle
+                      {ACTION_LABELS.edit}
                     </button>
                     <button type="button" className="btn-secondary" onClick={() => exportQuotePdf(quote)}>
                       PDF
@@ -495,7 +496,7 @@ export default function QuotesPage() {
                       className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
                       onClick={() => removeQuote(quote)}
                     >
-                      Sil
+                      {ACTION_LABELS.delete}
                     </button>
                   </div>
                 </td>
@@ -511,7 +512,7 @@ export default function QuotesPage() {
             {!loading && quotes.length === 0 ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={5}>
-                  Bu filtrede teklif bulunamadi.
+                  {EMPTY_STATE_LABELS.filteredQuotes}
                 </td>
               </tr>
             ) : null}
@@ -529,7 +530,7 @@ export default function QuotesPage() {
               disabled={!pagination.hasPrevPage}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             >
-              Onceki
+              {ACTION_LABELS.previous}
             </button>
             <button
               type="button"
@@ -537,7 +538,7 @@ export default function QuotesPage() {
               disabled={!pagination.hasNextPage}
               onClick={() => setPage((prev) => prev + 1)}
             >
-              Sonraki
+              {ACTION_LABELS.next}
             </button>
           </div>
         </div>

@@ -327,7 +327,7 @@ describe('InvoicesPage', () => {
 
     const selects = screen.getAllByRole('combobox');
     await user.selectOptions(selects[0], '7');
-    await user.click(screen.getByRole('button', { name: 'Fatura Olustur' }));
+    await user.click(screen.getByRole('button', { name: 'Olustur' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -351,7 +351,7 @@ describe('InvoicesPage', () => {
     );
 
     await screen.findByText('TKL-7 - Acar Insaat');
-    await user.click(screen.getByRole('button', { name: 'Fatura Olustur' }));
+    await user.click(screen.getByRole('button', { name: 'Olustur' }));
 
     expect(await screen.findByText('Faturaya cevrilecek teklifi secmelisiniz.')).toBeInTheDocument();
     expect(apiRequestMock).not.toHaveBeenCalledWith(
@@ -567,7 +567,7 @@ describe('InvoicesPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Hatirlatma Kayitlari')).toBeInTheDocument();
+    expect(await screen.findByText('Hatirlatmalar')).toBeInTheDocument();
     expect(await screen.findByText('SMTP timeout')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Yeniden Dene' }));

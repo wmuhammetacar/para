@@ -3,12 +3,6 @@ import { apiRequest, formatCurrency, formatDate } from '../api';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 
-const statsConfig = [
-  { key: 'totalCustomers', label: 'Toplam Musteri', note: 'Kayitli musteri sayisi' },
-  { key: 'totalQuotes', label: 'Aktif Teklif', note: 'Onay bekleyen veya acik teklifler' },
-  { key: 'pendingInvoiceCount', label: 'Aktif Fatura', note: 'Tahsilati tamamlanmamis fatura adedi' }
-];
-
 const periodOptions = [
   { value: 'all', label: 'Tum Zamanlar' },
   { value: 'today', label: 'Bugun' },
@@ -216,10 +210,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Panel"
-        description="Bugun oncelik gerektiren teklif, fatura ve tahsilat durumlarini izleyin."
+        description="Bugun dikkat gerektiren tahsilatlari ve son hareketleri izleyin."
       />
 
-        <div className="card">
+      <div className="card">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="chip bg-slate-100 text-slate-700">Donem</div>
           {periodOptions.map((option) => (
@@ -257,42 +251,28 @@ export default function DashboardPage() {
 
       {!loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {statsConfig.map((item) => (
-            <div key={item.key} className="stat-card">
-              <p className="text-sm text-slate-500">{item.label}</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">{stats[item.key]}</p>
-              <p className="mt-3 text-xs text-slate-500">{item.note}</p>
-            </div>
-          ))}
+          <div className="stat-card border-l-4 border-l-amber-500">
+            <p className="text-sm text-slate-500">Acik Tahsilat</p>
+            <p className="mt-2 text-3xl font-bold text-amber-700">{formatCurrency(stats.pendingReceivable)}</p>
+            <p className="mt-3 text-xs text-slate-500">Takipteki toplam alacak</p>
+          </div>
+
+          <div className="stat-card border-l-4 border-l-rose-500">
+            <p className="text-sm text-slate-500">Geciken Tahsilat</p>
+            <p className="mt-2 text-3xl font-bold text-rose-700">{formatCurrency(stats.overdueReceivable)}</p>
+            <p className="mt-3 text-xs text-slate-500">Vadesi gecmis alacak</p>
+          </div>
+
+          <div className="stat-card border-l-4 border-l-sky-500">
+            <p className="text-sm text-slate-500">Takipteki Fatura</p>
+            <p className="mt-2 text-3xl font-bold text-sky-700">{stats.pendingInvoiceCount}</p>
+            <p className="mt-3 text-xs text-slate-500">Odeme bekleyen fatura adedi</p>
+          </div>
 
           <div className="card bg-gradient-to-br from-brand-600 via-brand-600 to-brand-700 text-white">
-            <p className="text-sm text-brand-100">Beklenen Gelir</p>
-            <p className="mt-2 text-3xl font-bold">{formatCurrency(stats.pendingReceivable)}</p>
-            <p className="mt-3 text-xs text-brand-100">Acik faturalardan kalan tahsilat | Guncelleme: {updatedAt}</p>
-          </div>
-        </div>
-      ) : null}
-
-      {!loading ? (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="stat-card border-l-4 border-l-amber-500">
-            <p className="text-sm text-slate-500">Takipteki Tahsilat</p>
-            <p className="mt-2 text-3xl font-bold text-amber-700">{formatCurrency(stats.pendingReceivable)}</p>
-            <p className="mt-3 text-xs text-slate-500">
-              Odeme bekleyen toplam {stats.pendingInvoiceCount} fatura
-            </p>
-          </div>
-          <div className="stat-card border-l-4 border-l-rose-500">
-            <p className="text-sm text-slate-500">Gecikmeye Dusen Tahsilat</p>
-            <p className="mt-2 text-3xl font-bold text-rose-700">{formatCurrency(stats.overdueReceivable)}</p>
-            <p className="mt-3 text-xs text-slate-500">
-              Vadesi gecmis toplam {stats.overdueInvoiceCount} fatura
-            </p>
-          </div>
-          <div className="stat-card border-l-4 border-l-sky-500">
-            <p className="text-sm text-slate-500">Toplam Kesilen Ciro</p>
-            <p className="mt-2 text-3xl font-bold text-sky-700">{formatCurrency(stats.totalRevenue)}</p>
-            <p className="mt-3 text-xs text-slate-500">Tum donemde kesilen fatura toplami</p>
+            <p className="text-sm text-brand-100">Toplam Musteri</p>
+            <p className="mt-2 text-3xl font-bold">{stats.totalCustomers}</p>
+            <p className="mt-3 text-xs text-brand-100">Guncelleme: {updatedAt}</p>
           </div>
         </div>
       ) : null}
@@ -302,9 +282,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Donusum Ozeti</h3>
-              <p className="mt-1 text-sm text-slate-600">
-                Son {growth.periodDays || 0} gunun teklif-fatura-tahsilat gorunumu
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Son {growth.periodDays || 0} gun</p>
             </div>
             <p className="text-xs text-slate-500">Saglik skoru: {growth.health?.score ?? 0}</p>
           </div>
@@ -329,15 +307,13 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-
-          <p className="mt-3 text-xs text-slate-500">{growth.health?.insight || '-'}</p>
         </div>
       ) : null}
 
       {!loading ? (
         <div className="card">
           <h3 className="text-lg font-semibold text-slate-900">Gecikme Yaslandirmasi</h3>
-          <p className="mt-1 text-sm text-slate-600">Hangi alacaklar bugun daha fazla aksiyon istiyor?</p>
+          <p className="mt-1 text-sm text-slate-600">Gecikmenin gun dagilimi</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
               <p className="text-xs font-semibold text-amber-700">0-7 Gun</p>
@@ -365,7 +341,7 @@ export default function DashboardPage() {
         <div className="card overflow-x-auto">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-lg font-semibold text-slate-900">Son Hareketler</h3>
-            <p className="text-xs text-slate-500">Aksiyon kayitlari (son 8)</p>
+            <p className="text-xs text-slate-500">Son 8 kayit</p>
           </div>
 
           <table className="mt-4 min-w-full text-left text-sm">
@@ -389,7 +365,7 @@ export default function DashboardPage() {
               {!activities.length ? (
                 <tr>
                   <td className="py-8 text-center text-slate-500" colSpan={4}>
-                    Bu donem icin operasyon kaydi bulunamadi.
+                    Bu donem icin kayit bulunamadi.
                   </td>
                 </tr>
               ) : null}

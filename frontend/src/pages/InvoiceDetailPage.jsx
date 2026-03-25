@@ -224,7 +224,7 @@ export default function InvoiceDetailPage() {
     <div className="space-y-6">
       <PageHeader
         title="Fatura Detayi"
-        description="Tahsilat durumu, musteri bilgileri ve fatura kalemleri"
+        description="Tahsilat durumu ve fatura kalemleri"
         actions={
           <>
             <Link to="/invoices" className="btn-secondary">

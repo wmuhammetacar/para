@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiRequest, formatDate } from '../api';
 import PageHeader from '../components/PageHeader';
+import { ACTION_LABELS, EMPTY_STATE_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
 
 const emptyForm = {
@@ -223,7 +224,7 @@ export default function CustomersPage() {
     <div className="space-y-5">
       <PageHeader
         title="Musteriler"
-        description="Musteri kayitlarini guncel tutun. Teklif ve fatura akisi daha hizli ilerlesin."
+        description="Musteri kayitlarini yonetin."
       />
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
@@ -279,7 +280,7 @@ export default function CustomersPage() {
               </button>
               {editingId ? (
                 <button type="button" className="btn-secondary" onClick={resetForm}>
-                  Iptal
+                  {ACTION_LABELS.cancel}
                 </button>
               ) : null}
             </div>
@@ -339,14 +340,14 @@ export default function CustomersPage() {
                 <td className="py-3">
                   <div className="table-actions">
                     <button type="button" className="btn-secondary" onClick={() => startEdit(customer)}>
-                      Duzenle
+                      {ACTION_LABELS.edit}
                     </button>
                     <button
                       type="button"
                       className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
                       onClick={() => removeCustomer(customer.id)}
                     >
-                      Sil
+                      {ACTION_LABELS.delete}
                     </button>
                   </div>
                 </td>
@@ -362,7 +363,7 @@ export default function CustomersPage() {
             {!loading && customers.length === 0 ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={6}>
-                  Bu filtrede client bulunamadi.
+                  {EMPTY_STATE_LABELS.filteredCustomers}
                 </td>
               </tr>
             ) : null}
@@ -380,7 +381,7 @@ export default function CustomersPage() {
               disabled={!pagination.hasPrevPage}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             >
-              Onceki
+              {ACTION_LABELS.previous}
             </button>
             <button
               type="button"
@@ -388,7 +389,7 @@ export default function CustomersPage() {
               disabled={!pagination.hasNextPage}
               onClick={() => setPage((prev) => prev + 1)}
             >
-              Sonraki
+              {ACTION_LABELS.next}
             </button>
           </div>
         </div>

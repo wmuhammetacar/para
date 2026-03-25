@@ -29,7 +29,7 @@ export default function AppLayout() {
           <div className="flex items-center justify-between lg:block">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">Teklifim</h1>
-              <p className="mt-1 text-xs text-slate-300">Ajans is akisi</p>
+              <p className="mt-1 text-xs text-slate-300">Ajans yonetimi</p>
             </div>
           </div>
 
@@ -91,7 +91,7 @@ export default function AppLayout() {
           <header className="card mb-6 fade-in bg-white/85 backdrop-blur-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
-                <p className="text-sm text-slate-500">Genel gorunum</p>
+                <p className="text-sm text-slate-500">Bugun</p>
                 <p className="text-lg font-semibold text-slate-900">{user?.companyName || 'Teklifim'}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">

@@ -5,7 +5,7 @@ export default function AgencyPresetBar({ onApplyServicePreset, onApplyPaymentPl
     <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hazir Hizmetler</p>
-        <p className="mt-1 text-xs text-slate-600">Sik kullanilan hizmet kalemlerini hizli ekleyin.</p>
+        <p className="mt-1 text-xs text-slate-600">Sik kullanilan kalemleri ekleyin.</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {agencyServicePresets.map((preset) => (
             <button
@@ -23,7 +23,7 @@ export default function AgencyPresetBar({ onApplyServicePreset, onApplyPaymentPl
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hazir Odeme Planlari</p>
-        <p className="mt-1 text-xs text-slate-600">Proje veya retainer odeme planlarini tek adimda ekleyin.</p>
+        <p className="mt-1 text-xs text-slate-600">Odeme planini tek adimda ekleyin.</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {paymentPlanPresets.map((preset) => (
             <button

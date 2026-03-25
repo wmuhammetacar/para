@@ -5,6 +5,7 @@ import ItemRows from '../components/ItemRows';
 import PageHeader from '../components/PageHeader';
 import { apiRequest, downloadPdf, formatCurrency, formatDate } from '../api';
 import { mergePresetItems } from '../constants/agencyPresets';
+import { ACTION_LABELS, EMPTY_STATE_LABELS, STATUS_FILTER_LABELS } from '../constants/uiText';
 import { useAuth } from '../contexts/AuthContext';
 
 const emptyItem = { name: '', quantity: 1, unitPrice: 0 };
@@ -769,53 +770,35 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Faturalar"
-        description="Faturalari izleyin, tahsilati takip edin ve gerekirse hatirlatma gonderin."
+        description="Oncelik gerektiren faturalari ve tahsilati takip edin."
       />
 
-      <div className="grid gap-6">
-        <div className="order-1 grid gap-4 md:grid-cols-[2fr_1fr]">
-        <div className="card">
-          <h3 className="panel-title">Tekliften Fatura Olustur</h3>
-          <p className="panel-description">Onaylanan teklifi secin ve faturayi tek adimda olusturun.</p>
-          <div className="mt-3 flex flex-col gap-2 md:flex-row">
-            <select value={fromQuoteId} onChange={(event) => setFromQuoteId(event.target.value)}>
-              <option value="">Teklif secin</option>
-              {quotes.map((quote) => (
-                <option key={quote.id} value={quote.id}>
-                  {quote.quote_number} - {quote.customer_name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="btn-primary md:w-auto"
-              onClick={createFromQuote}
-              disabled={savingFromQuote}
-            >
-              {savingFromQuote ? 'Olusturuluyor...' : 'Fatura Olustur'}
-            </button>
+      {success ? <div className="status-success">{success}</div> : null}
+      {error ? <div className="status-error">{error}</div> : null}
+
+      <div className="card overflow-x-auto">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Fatura Listesi</h3>
+            <p className="text-xs text-slate-500">Oncelik: bekleyen ve geciken faturalar</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="chip border-amber-200 bg-amber-50 text-amber-700">
+              Acik: {formatCurrency(pendingReceivable)}
+            </span>
+            <span className="chip border-rose-200 bg-rose-50 text-rose-700">
+              Geciken: {formatCurrency(overdueReceivable)}
+            </span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Fatura</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{totalInvoices}</p>
-          <p className="mt-3 text-sm text-slate-600">Toplam Kesilen Tutar</p>
-          <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(invoicesTotal)}</p>
-          <p className="mt-3 text-sm text-slate-600">Acik Tahsilat</p>
-          <p className="mt-1 text-lg font-semibold text-amber-700">{formatCurrency(pendingReceivable)}</p>
-          <p className="mt-2 text-xs text-rose-700">Gecikmeye Dusen: {formatCurrency(overdueReceivable)}</p>
-        </div>
-      </div>
-
-        <div className="order-2 card">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-slate-600">Durum:</span>
           {[
-            { key: 'all', label: 'Tum Faturalar' },
-            { key: 'pending', label: 'Bekleyen' },
-            { key: 'overdue', label: 'Geciken' },
-            { key: 'paid', label: 'Tahsil Edilen' }
+            { key: 'all', label: STATUS_FILTER_LABELS.allInvoices },
+            { key: 'pending', label: STATUS_FILTER_LABELS.pending },
+            { key: 'overdue', label: STATUS_FILTER_LABELS.overdue },
+            { key: 'paid', label: STATUS_FILTER_LABELS.paid }
           ].map((option) => (
             <button
               key={option.key}
@@ -831,6 +814,7 @@ export default function InvoicesPage() {
           ))}
           <span className="ml-auto text-xs text-slate-500">Secili kayit: {selectedCount}</span>
         </div>
+
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
@@ -850,51 +834,298 @@ export default function InvoicesPage() {
           </button>
           {selectedCount > 0 ? (
             <button type="button" className="btn-secondary" onClick={() => setSelectedInvoiceIds([])}>
-              Secimi Temizle
+              {ACTION_LABELS.clearSelection}
             </button>
           ) : null}
         </div>
+
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            Faturalar ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} - Sayfa
+            toplami: {formatCurrency(invoicesTotal)}
+          </p>
+          <input
+            type="text"
+            placeholder="Fatura ara (no, musteri, tarih)"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            className="sm:max-w-xs"
+          />
+        </div>
+
+        <table className="mt-3 min-w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-500">
+              <th className="py-2 pr-3">
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
+              </th>
+              <th className="py-2 pr-4">No</th>
+              <th className="py-2 pr-4">Musteri</th>
+              <th className="py-2 pr-4">Tarih</th>
+              <th className="py-2 pr-4">Vade</th>
+              <th className="py-2 pr-4">Durum</th>
+              <th className="py-2 pr-4">Toplam</th>
+              <th className="py-2">Islem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map((invoice) => (
+              <tr key={invoice.id} className="border-b border-slate-100">
+                <td className="py-3 pr-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedInvoiceIds.includes(invoice.id)}
+                    onChange={() => toggleInvoiceSelection(invoice.id)}
+                  />
+                </td>
+                <td className="py-3 pr-4 font-semibold text-slate-800">{invoice.invoice_number}</td>
+                <td className="table-cell-muted py-3 pr-4">{invoice.customer_name}</td>
+                <td className="table-cell-muted py-3 pr-4">{formatDate(invoice.date)}</td>
+                <td className="table-cell-muted py-3 pr-4">{formatDate(resolveDueDate(invoice))}</td>
+                <td className="py-3 pr-4">
+                  <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${paymentStatusClasses(invoice)}`}>
+                    {paymentStatusLabel(invoice)}
+                  </span>
+                </td>
+                <td className="py-3 pr-4 font-medium text-slate-800">{formatCurrency(invoice.total)}</td>
+                <td className="py-3">
+                  <div className="table-actions">
+                    <Link to={`/invoices/${invoice.id}`} className="btn-secondary">
+                      {ACTION_LABELS.detail}
+                    </Link>
+                    <button type="button" className="btn-secondary" onClick={() => startEdit(invoice.id)}>
+                      {ACTION_LABELS.edit}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => exportInvoicePdf(invoice)}>
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => sendReminder(invoice, 'whatsapp')}
+                      disabled={
+                        sendingReminderKey === `${invoice.id}:whatsapp` ||
+                        (invoice.payment_status || 'pending') === 'paid'
+                      }
+                    >
+                      {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => sendReminder(invoice, 'email')}
+                      disabled={
+                        sendingReminderKey === `${invoice.id}:email` ||
+                        (invoice.payment_status || 'pending') === 'paid'
+                      }
+                    >
+                      {sendingReminderKey === `${invoice.id}:email` ? 'Hazirlaniyor...' : 'E-posta Hatirlat'}
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        (invoice.payment_status || 'pending') === 'paid'
+                          ? 'btn-secondary'
+                          : 'btn-secondary border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                      }
+                      onClick={() =>
+                        updatePaymentStatus(
+                          invoice,
+                          (invoice.payment_status || 'pending') === 'paid' ? 'pending' : 'paid'
+                        )
+                      }
+                    >
+                      {(invoice.payment_status || 'pending') === 'paid' ? 'Takibe Al' : 'Tahsil Edildi'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
+                      onClick={() => removeInvoice(invoice)}
+                    >
+                      {ACTION_LABELS.delete}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {loading ? (
+              <tr>
+                <td className="py-8 text-center text-slate-500" colSpan={8}>
+                  Faturalar yukleniyor...
+                </td>
+              </tr>
+            ) : null}
+            {!loading && invoices.length === 0 ? (
+              <tr>
+                <td className="py-8 text-center text-slate-500" colSpan={8}>
+                  {EMPTY_STATE_LABELS.filteredInvoices}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+          <p className="text-xs text-slate-500">
+            Toplam {totalInvoices} kayit, sayfa basi {pagination.limit} kayit
+          </p>
+          <div className="table-actions">
+            <button
+              type="button"
+              className="btn-secondary px-3 py-2 text-xs"
+              disabled={!pagination.hasPrevPage}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            >
+              {ACTION_LABELS.previous}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary px-3 py-2 text-xs"
+              disabled={!pagination.hasNextPage}
+              onClick={() => setPage((prev) => prev + 1)}
+            >
+              {ACTION_LABELS.next}
+            </button>
+          </div>
+        </div>
       </div>
 
-        <div className="order-5 card">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="card">
+          <h3 className="panel-title">Tekliften Olustur</h3>
+          <div className="mt-3 flex flex-col gap-2 md:flex-row">
+            <select value={fromQuoteId} onChange={(event) => setFromQuoteId(event.target.value)}>
+              <option value="">Teklif secin</option>
+              {quotes.map((quote) => (
+                <option key={quote.id} value={quote.id}>
+                  {quote.quote_number} - {quote.customer_name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn-primary md:w-auto"
+              onClick={createFromQuote}
+              disabled={savingFromQuote}
+            >
+              {savingFromQuote ? 'Olusturuluyor...' : 'Olustur'}
+            </button>
+          </div>
+        </div>
+
+        <div ref={formCardRef} className="card">
+          <h3 className="panel-title">{editingId ? 'Faturayi Duzenle' : 'Manuel Fatura'}</h3>
+
+          <form className="mt-4 space-y-4" onSubmit={handleManualSubmit}>
+            {loadingEdit ? <p className="text-sm text-slate-500">Fatura bilgisi yukleniyor...</p> : null}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm text-slate-600">Musteri</label>
+                <select
+                  value={form.customerId}
+                  onChange={(event) => setForm((prev) => ({ ...prev, customerId: event.target.value }))}
+                  required
+                >
+                  <option value="">Musteri secin</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-slate-600">Tarih</label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-slate-600">Vade</label>
+                <input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(event) => setForm((prev) => ({ ...prev, dueDate: event.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <AgencyPresetBar
+              onApplyServicePreset={applyServicePreset}
+              onApplyPaymentPlanPreset={applyPaymentPlanPreset}
+            />
+
+            <ItemRows items={form.items} onChange={updateItem} onAdd={addItem} onRemove={removeItem} />
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-700">
+                Toplam: <span className="font-semibold">{formatCurrency(total)}</span>
+              </p>
+              <div className="table-actions">
+                {editingId ? (
+                  <button type="button" className="btn-secondary" onClick={resetForm}>
+                    {ACTION_LABELS.cancel}
+                  </button>
+                ) : null}
+                <button type="submit" className="btn-primary" disabled={savingManual}>
+                  {savingManual ? 'Kaydediliyor...' : editingId ? ACTION_LABELS.update : 'Faturayi Kaydet'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div className="card bg-slate-50/70">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="panel-title">Hatirlatma Kayitlari</h3>
-            <p className="panel-description">Ikincil izleme alani: kuyruk ve hata durumlari.</p>
+            <h3 className="panel-title">Hatirlatmalar</h3>
+            <p className="text-xs text-slate-500">Ikincil izleme alani</p>
           </div>
-          <div className="chip">
-            Filtreli Kayit: {reminderOps.filteredCount}
+          <span className="chip">Kayit: {reminderOps.filteredCount}</span>
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-2">
+            <p className="text-[11px] text-amber-700">Kuyrukta</p>
+            <p className="text-sm font-semibold text-amber-800">{reminderSummary.queued}</p>
+          </div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-2">
+            <p className="text-[11px] text-rose-700">Hata</p>
+            <p className="text-sm font-semibold text-rose-800">{reminderSummary.failed}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-2">
+            <p className="text-[11px] text-slate-500">24s Hata</p>
+            <p className="text-sm font-semibold text-slate-800">{reminderSummary.failedLast24h}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-2">
+            <p className="text-[11px] text-slate-500">Hata Orani</p>
+            <p className="text-sm font-semibold text-slate-800">%{reminderSummary.failedRate}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-2">
+            <p className="text-[11px] text-slate-500">Deneme Limiti</p>
+            <p className="text-sm font-semibold text-slate-800">{reminderPolicy.maxRetryCount}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-2">
+            <p className="text-[11px] text-slate-500">Kanal (WA/E-posta)</p>
+            <p className="text-sm font-semibold text-slate-800">
+              {reminderSummary.whatsapp}/{reminderSummary.email}
+            </p>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">Toplam</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">{reminderSummary.total}</p>
-          </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-xs text-amber-700">Kuyrukta</p>
-            <p className="mt-1 text-lg font-semibold text-amber-800">{reminderSummary.queued}</p>
-          </div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <p className="text-xs text-emerald-700">Gonderildi</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-800">{reminderSummary.sent}</p>
-          </div>
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
-            <p className="text-xs text-rose-700">Hata</p>
-            <p className="mt-1 text-lg font-semibold text-rose-800">{reminderSummary.failed}</p>
-          </div>
-        </div>
-        <p className="mt-3 text-xs text-slate-500">
-          Hata orani: %{reminderSummary.failedRate} | 24s hata: {reminderSummary.failedLast24h} | Planli deneme:{' '}
-          {reminderSummary.scheduledRetries} | WhatsApp/E-posta: {reminderSummary.whatsapp}/{reminderSummary.email} |
-          En eski kuyruk:{' '}
-          {reminderSummary.oldestQueuedMinutes === null ? '-' : `${reminderSummary.oldestQueuedMinutes} dk`} | Deneme
-          limiti: {reminderPolicy.maxRetryCount}
-        </p>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">Hatirlatma Durumu:</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">Durum:</span>
           {reminderStatusFilters.map((option) => (
             <button
               key={option.key}
@@ -912,19 +1143,17 @@ export default function InvoicesPage() {
           <span className="ml-auto text-xs text-slate-500">En sik hata: {reminderErrorBreakdown[0]?.message || '-'}</span>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {reminderErrorBreakdown.length > 0 ? (
-            reminderErrorBreakdown.map((errorRow) => (
+        {reminderErrorBreakdown.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {reminderErrorBreakdown.map((errorRow) => (
               <span key={`${errorRow.message}:${errorRow.total}`} className="chip">
                 {errorRow.message} ({errorRow.total})
               </span>
-            ))
-          ) : (
-            <span className="text-xs text-slate-500">Hata kirilimi icin veri olusmadi.</span>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-slate-500">
@@ -995,245 +1224,12 @@ export default function InvoicesPage() {
               {!loadingReminderOps && reminderJobs.length === 0 ? (
                 <tr>
                   <td className="py-6 text-center text-slate-500" colSpan={8}>
-                    Hatirlatma kaydi bulunamadi.
+                    {EMPTY_STATE_LABELS.noReminderRecords}
                   </td>
                 </tr>
               ) : null}
             </tbody>
           </table>
-        </div>
-      </div>
-
-        <div ref={formCardRef} className="order-4 card">
-        <h3 className="panel-title">{editingId ? 'Faturayi Duzenle' : 'Manuel Fatura Olustur'}</h3>
-        <p className="panel-description">Musteri, tarih, vade ve kalemleri girin.</p>
-
-        <form className="mt-4 space-y-4" onSubmit={handleManualSubmit}>
-          {loadingEdit ? <p className="text-sm text-slate-500">Fatura bilgisi yukleniyor...</p> : null}
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div>
-              <label className="mb-1 block text-sm text-slate-600">Musteri</label>
-              <select
-                value={form.customerId}
-                onChange={(event) => setForm((prev) => ({ ...prev, customerId: event.target.value }))}
-                required
-              >
-                <option value="">Musteri secin</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm text-slate-600">Tarih</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm text-slate-600">Vade Tarihi</label>
-              <input
-                type="date"
-                value={form.dueDate}
-                onChange={(event) => setForm((prev) => ({ ...prev, dueDate: event.target.value }))}
-                required
-              />
-            </div>
-          </div>
-
-          <AgencyPresetBar
-            onApplyServicePreset={applyServicePreset}
-            onApplyPaymentPlanPreset={applyPaymentPlanPreset}
-          />
-
-          <ItemRows items={form.items} onChange={updateItem} onAdd={addItem} onRemove={removeItem} />
-
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-700">
-              Toplam: <span className="font-semibold">{formatCurrency(total)}</span>
-            </p>
-            <div className="table-actions">
-              {editingId ? (
-                <button type="button" className="btn-secondary" onClick={resetForm}>
-                  Iptal
-                </button>
-              ) : null}
-              <button type="submit" className="btn-primary" disabled={savingManual}>
-                {savingManual ? 'Kaydediliyor...' : editingId ? 'Guncelle' : 'Faturayi Kaydet'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-        {success ? <div className="order-0 status-success">{success}</div> : null}
-        {error ? <div className="order-0 status-error">{error}</div> : null}
-
-        <div className="order-3 card overflow-x-auto">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-lg font-semibold text-slate-900">Fatura Listesi</h3>
-          <p className="text-xs text-slate-500">Birincil takip alani</p>
-        </div>
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
-            Faturalar ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} - Sayfa
-            toplami: {formatCurrency(invoicesTotal)}
-          </p>
-          <input
-            type="text"
-            placeholder="Fatura ara (no, musteri, tarih)"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            className="sm:max-w-xs"
-          />
-        </div>
-
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
-              <th className="py-2 pr-3">
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
-              </th>
-              <th className="py-2 pr-4">No</th>
-              <th className="py-2 pr-4">Musteri</th>
-              <th className="py-2 pr-4">Tarih</th>
-              <th className="py-2 pr-4">Vade</th>
-              <th className="py-2 pr-4">Durum</th>
-              <th className="py-2 pr-4">Toplam</th>
-              <th className="py-2">Islemler</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((invoice) => (
-              <tr key={invoice.id} className="border-b border-slate-100">
-                <td className="py-3 pr-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedInvoiceIds.includes(invoice.id)}
-                    onChange={() => toggleInvoiceSelection(invoice.id)}
-                  />
-                </td>
-                <td className="py-3 pr-4 font-semibold text-slate-800">{invoice.invoice_number}</td>
-                <td className="table-cell-muted py-3 pr-4">{invoice.customer_name}</td>
-                <td className="table-cell-muted py-3 pr-4">{formatDate(invoice.date)}</td>
-                <td className="table-cell-muted py-3 pr-4">{formatDate(resolveDueDate(invoice))}</td>
-                <td className="py-3 pr-4">
-                  <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${paymentStatusClasses(invoice)}`}>
-                    {paymentStatusLabel(invoice)}
-                  </span>
-                </td>
-                <td className="py-3 pr-4 font-medium text-slate-800">{formatCurrency(invoice.total)}</td>
-                <td className="py-3">
-                  <div className="table-actions">
-                    <Link to={`/invoices/${invoice.id}`} className="btn-secondary">
-                      Detay
-                    </Link>
-                    <button type="button" className="btn-secondary" onClick={() => startEdit(invoice.id)}>
-                      Duzenle
-                    </button>
-                    <button type="button" className="btn-secondary" onClick={() => exportInvoicePdf(invoice)}>
-                      PDF
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => sendReminder(invoice, 'whatsapp')}
-                      disabled={
-                        sendingReminderKey === `${invoice.id}:whatsapp` ||
-                        (invoice.payment_status || 'pending') === 'paid'
-                      }
-                    >
-                      {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => sendReminder(invoice, 'email')}
-                      disabled={
-                        sendingReminderKey === `${invoice.id}:email` ||
-                        (invoice.payment_status || 'pending') === 'paid'
-                      }
-                    >
-                      {sendingReminderKey === `${invoice.id}:email` ? 'Hazirlaniyor...' : 'E-posta Hatirlat'}
-                    </button>
-                    <button
-                      type="button"
-                      className={
-                        (invoice.payment_status || 'pending') === 'paid'
-                          ? 'btn-secondary'
-                          : 'btn-secondary border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                      }
-                      onClick={() =>
-                        updatePaymentStatus(
-                          invoice,
-                          (invoice.payment_status || 'pending') === 'paid' ? 'pending' : 'paid'
-                        )
-                      }
-                    >
-                      {(invoice.payment_status || 'pending') === 'paid' ? 'Takibe Al' : 'Tahsil Edildi'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
-                      onClick={() => removeInvoice(invoice)}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {loading ? (
-              <tr>
-                <td className="py-8 text-center text-slate-500" colSpan={8}>
-                  Faturalar yukleniyor...
-                </td>
-              </tr>
-            ) : null}
-            {!loading && invoices.length === 0 ? (
-              <tr>
-                <td className="py-8 text-center text-slate-500" colSpan={8}>
-                  Bu filtrede fatura bulunamadi.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-          <p className="text-xs text-slate-500">
-            Toplam {totalInvoices} kayit, sayfa basi {pagination.limit} kayit
-          </p>
-          <div className="table-actions">
-            <button
-              type="button"
-              className="btn-secondary px-3 py-2 text-xs"
-              disabled={!pagination.hasPrevPage}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Onceki
-            </button>
-            <button
-              type="button"
-              className="btn-secondary px-3 py-2 text-xs"
-              disabled={!pagination.hasNextPage}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Sonraki
-            </button>
-          </div>
-        </div>
         </div>
       </div>
     </div>
