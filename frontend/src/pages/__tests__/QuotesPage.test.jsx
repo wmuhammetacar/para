@@ -258,7 +258,7 @@ describe('QuotesPage', () => {
       );
     });
 
-    expect(await screen.findByText('Teklif dosyasi silindi.')).toBeInTheDocument();
+    expect(await screen.findByText('Teklif silindi.')).toBeInTheDocument();
     confirmMock.mockRestore();
   });
 });

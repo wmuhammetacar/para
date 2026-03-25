@@ -73,8 +73,8 @@ export default function PilotReadinessPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pilot Hardening"
-        description="Canli pilot oncesi operasyonel hazirlik ve risk seviyesini anlik takip edin."
+        title="Hazirlik Kontrolu"
+        description="Kritik kontrol maddelerini ve risk seviyesini takip edin."
         actions={
           <button type="button" className="btn-secondary" onClick={fetchReadiness} disabled={loading}>
             {loading ? 'Yenileniyor...' : 'Durumu Yenile'}
@@ -119,7 +119,7 @@ export default function PilotReadinessPage() {
       {!loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="stat-card">
-            <p className="text-sm text-slate-500">Readiness Skoru</p>
+            <p className="text-sm text-slate-500">Hazirlik Skoru</p>
             <p className="mt-2 text-3xl font-bold text-slate-900">{readiness.score}</p>
             <p className="mt-2 text-xs text-slate-500">{readiness.status.label}</p>
           </div>
@@ -135,7 +135,7 @@ export default function PilotReadinessPage() {
             <p className="mt-2 text-3xl font-bold text-slate-900">
               {formatCurrency(readiness.financialRisk.pendingTotal)}
             </p>
-            <p className="mt-2 text-xs text-slate-500">Pilot finansal maruziyet</p>
+            <p className="mt-2 text-xs text-slate-500">Acil takip gerektiren acik alacak</p>
           </div>
           <div className="stat-card">
             <p className="text-sm text-slate-500">Gecikme Orani</p>
@@ -148,7 +148,7 @@ export default function PilotReadinessPage() {
       {!loading ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Pilot Kontrol Listesi</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Kontrol Listesi</h3>
             <div className="mt-4 space-y-3">
               {(readiness.checks || []).map((check) => (
                 <div key={check.key} className={`rounded-xl border p-3 ${resolveCheckClass(check)}`}>
@@ -179,7 +179,7 @@ export default function PilotReadinessPage() {
               ))}
               {!readiness.nextActions?.length ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                  Pilot hazirligi icin tum kritik maddeler gecti.
+                  Tum kritik maddeler gecti.
                 </div>
               ) : null}
             </div>

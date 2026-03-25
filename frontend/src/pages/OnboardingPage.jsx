@@ -25,7 +25,7 @@ function stepStatusClasses(completed) {
   return 'border-amber-200 bg-amber-50 text-amber-700';
 }
 
-const momentumConfig = {
+const setupStatusConfig = {
   completed: {
     label: 'Tamamlandi',
     className: 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -79,13 +79,13 @@ export default function OnboardingPage() {
     fetchActivation();
   }, [token]);
 
-  const momentum = momentumConfig[activation.momentumStatus] || momentumConfig.not_started;
+  const setupStatus = setupStatusConfig[activation.momentumStatus] || setupStatusConfig.not_started;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ajans Kurulum Akisi"
-        description="Client, teklif ve fatura adimlarini hizla tamamlayin; operasyonu dogru kurup tahsilata hizli gecin."
+        title="Kurulum"
+        description="Ilk adimlari tamamlayin ve tekliften tahsilata kadar akisiniz hazir olsun."
         actions={
           <button type="button" className="btn-secondary" onClick={fetchActivation} disabled={loading}>
             {loading ? 'Yenileniyor...' : 'Durumu Yenile'}
@@ -99,7 +99,7 @@ export default function OnboardingPage() {
         <div className="card lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-slate-500">Aktivasyon Ilerlemesi</p>
+              <p className="text-sm text-slate-500">Kurulum Ilerlemesi</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">%{activation.completionPercent}</p>
               <p className="mt-2 text-xs text-slate-500">
                 Tamamlanan Adim: {activation.completedSteps} / {activation.totalSteps}
@@ -128,36 +128,36 @@ export default function OnboardingPage() {
           <div className="card">
             <p className="text-xs text-slate-500">Kalan Adim</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{activation.remainingSteps}</p>
-            <p className="mt-2 text-xs text-slate-500">Hedef: bugun tum operasyon adimlarini tamamlamak</p>
+            <p className="mt-2 text-xs text-slate-500">Oncelik: temel kayitlari tamamlamak</p>
           </div>
           <div className="card">
             <p className="text-xs text-slate-500">Tahmini Sure</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{activation.estimatedMinutesLeft} dk</p>
-            <p className="mt-2 text-xs text-slate-500">Kalan kurulum eforu</p>
+            <p className="mt-2 text-xs text-slate-500">Kalan kurulum suresi</p>
           </div>
-          <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${momentum.className}`}>
-            Momentum: {momentum.label}
+          <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${setupStatus.className}`}>
+            Kurulum Durumu: {setupStatus.label}
           </div>
         </div>
       </div>
 
       {activation.isCompleted ? (
         <div className="status-success">
-          Kurulum tamamlandi. Artik tekliften tahsilata tum operasyon panellerini aktif sekilde kullanabilirsiniz.
+          Kurulum tamamlandi. Teklif ve fatura akisini aktif olarak kullanabilirsiniz.
         </div>
       ) : null}
 
       {!loading && activation.quickWins.length > 0 ? (
         <div className="card">
-          <h3 className="text-lg font-semibold text-slate-900">Hizli Etki Alanlari</h3>
-          <p className="mt-1 text-sm text-slate-600">Ajans akisinda ilk geri donusu verecek adimlari once tamamlayin.</p>
+          <h3 className="text-lg font-semibold text-slate-900">Oncelikli Adimlar</h3>
+          <p className="mt-1 text-sm text-slate-600">Ilk kullanimi hizlandiracak adimlari once tamamlayin.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {activation.quickWins.map((quickWin) => (
               <div key={quickWin.key} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-sm font-semibold text-slate-900">{quickWin.label}</p>
                 <p className="mt-1 text-xs text-slate-500">Tahmini: {quickWin.estimatedMinutes} dk</p>
                 <Link to={quickWin.ctaPath} className="btn-secondary mt-3 inline-flex">
-                  Aksiyona Gec
+                  Adima Git
                 </Link>
               </div>
             ))}
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
                   {Number(step.estimatedMinutes) || 0} dk
                 </p>
                 <Link to={step.ctaPath} className="btn-secondary">
-                  {step.actionLabel || 'Sayfaya Git'}
+                  {step.actionLabel || 'Sayfayi Ac'}
                 </Link>
               </div>
             </div>

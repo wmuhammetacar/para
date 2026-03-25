@@ -8,7 +8,7 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
         <span>Miktar</span>
         <span>Birim Fiyat</span>
         <span>Tutar</span>
-        <span>Islemler</span>
+        <span>Islem</span>
       </div>
 
       {items.map((item, index) => {
@@ -57,7 +57,7 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
       })}
 
       <button type="button" onClick={onAdd} className="btn-secondary">
-        + Hizmet Kalemi Ekle
+        + Kalem Ekle
       </button>
     </div>
   );

@@ -29,29 +29,23 @@ export default function LoginPage() {
 
       <div className="relative grid w-full max-w-5xl gap-5 lg:grid-cols-[1.1fr_1fr]">
         <div className="card hidden bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 lg:block">
-          <p className="chip bg-brand-100 text-brand-700">Teklifim Agency Operations</p>
-          <h1 className="mt-4 text-3xl font-bold text-white">Ajansinizin tekliften tahsilata tum akisini yonetin</h1>
+          <p className="chip bg-brand-100 text-brand-700">Teklifim</p>
+          <h1 className="mt-4 text-3xl font-bold text-white">Ajansinizin teklif ve tahsilat akisini yonetin</h1>
           <p className="mt-3 text-sm text-slate-300">
-            Dijital ajanslar icin client yonetimi, teklif dosyalari, fatura takibi ve hatirlatma operasyonunu tek panelde birlestirin.
+            Musteri kayitlari, teklifler, faturalar ve odeme takibini tek panelde yonetin.
           </p>
 
           <div className="mt-6 grid gap-3 text-sm text-slate-200">
-            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">Client / Brand kayit yonetimi</div>
-            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">
-              Ajans hizmet presetleriyle hizli teklif olusturma
-            </div>
-            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">
-              Tekliften fatura donusumu ve odeme plani akisi
-            </div>
-            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">
-              Tahsilat takibi, gecikme yonetimi ve hatirlatma
-            </div>
+            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">Musteri yonetimi</div>
+            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">Hizli teklif olusturma</div>
+            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">Tekliften fatura olusturma</div>
+            <div className="rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2">Tahsilat ve hatirlatma takibi</div>
           </div>
         </div>
 
         <div className="card w-full max-w-xl justify-self-center bg-white/95 backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Agency paneline hos geldiniz</h1>
-          <p className="mt-1 text-sm text-slate-600">Client operasyonlarinizi yonetmek icin oturum acin</p>
+          <h1 className="text-2xl font-bold text-slate-900">Panele giris yapin</h1>
+          <p className="mt-1 text-sm text-slate-600">Teklif ve tahsilat akisini yonetmek icin oturum acin</p>
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <div>

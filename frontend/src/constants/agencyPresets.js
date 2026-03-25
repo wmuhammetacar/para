@@ -1,40 +1,40 @@
 export const agencyServicePresets = [
   {
     key: 'social-media-management',
-    label: 'Social Media Management',
+    label: 'Sosyal Medya Yonetimi',
     description: 'Aylik icerik plani, paylasim takvimi ve topluluk yonetimi.',
     item: {
-      name: 'Social Media Management (Aylik)',
+      name: 'Sosyal Medya Yonetimi (Aylik)',
       quantity: 1,
       unitPrice: 0
     }
   },
   {
     key: 'meta-ads-management',
-    label: 'Meta Ads Management',
+    label: 'Meta Reklam Yonetimi',
     description: 'Kampanya kurulumu, optimizasyon ve haftalik raporlama.',
     item: {
-      name: 'Meta Ads Management',
+      name: 'Meta Reklam Yonetimi',
       quantity: 1,
       unitPrice: 0
     }
   },
   {
     key: 'google-ads-management',
-    label: 'Google Ads Management',
+    label: 'Google Reklam Yonetimi',
     description: 'Arama ve performans kampanyalarinin operasyon yonetimi.',
     item: {
-      name: 'Google Ads Management',
+      name: 'Google Reklam Yonetimi',
       quantity: 1,
       unitPrice: 0
     }
   },
   {
     key: 'branding-design',
-    label: 'Branding Design',
+    label: 'Marka Tasarimi',
     description: 'Marka kimligi, logo ve kurumsal gorsel paket.',
     item: {
-      name: 'Branding Design Paketi',
+      name: 'Marka Tasarimi Paketi',
       quantity: 1,
       unitPrice: 0
     }
@@ -51,40 +51,40 @@ export const agencyServicePresets = [
   },
   {
     key: 'web-development',
-    label: 'Web Development',
+    label: 'Web Gelistirme',
     description: 'Frontend/backend gelistirme ve yayin alma sureci.',
     item: {
-      name: 'Web Development Hizmeti',
+      name: 'Web Gelistirme Hizmeti',
       quantity: 1,
       unitPrice: 0
     }
   },
   {
     key: 'seo-service',
-    label: 'SEO Service',
+    label: 'SEO Hizmeti',
     description: 'Teknik SEO, icerik optimizasyonu ve aylik rapor.',
     item: {
-      name: 'SEO Service (Aylik)',
+      name: 'SEO Hizmeti (Aylik)',
       quantity: 1,
       unitPrice: 0
     }
   },
   {
     key: 'content-production',
-    label: 'Content Production',
+    label: 'Icerik Uretimi',
     description: 'Video/gorsel/metin icerik uretim paketleri.',
     item: {
-      name: 'Content Production Paketi',
+      name: 'Icerik Uretimi Paketi',
       quantity: 1,
       unitPrice: 0
     }
   },
   {
     key: 'monthly-retainer',
-    label: 'Monthly Retainer',
+    label: 'Aylik Retainer',
     description: 'Aylik surekli ajans operasyon bedeli.',
     item: {
-      name: 'Monthly Retainer Bedeli',
+      name: 'Aylik Retainer Bedeli',
       quantity: 1,
       unitPrice: 0
     }
@@ -94,7 +94,7 @@ export const agencyServicePresets = [
 export const paymentPlanPresets = [
   {
     key: 'split-50-50',
-    label: '50% upfront / 50% on delivery',
+    label: '%50 pesin / %50 teslimde',
     description: 'Proje baslangicinda avans, teslimde kalan bakiye.',
     dueInDays: 14,
     items: [
@@ -112,7 +112,7 @@ export const paymentPlanPresets = [
   },
   {
     key: 'monthly-retainer-plan',
-    label: 'monthly retainer',
+    label: 'Aylik retainer',
     description: 'Aylik tekrarlayan hizmet faturasi/plani.',
     dueInDays: 7,
     items: [
@@ -125,7 +125,7 @@ export const paymentPlanPresets = [
   },
   {
     key: 'milestone-based',
-    label: 'milestone-based payment',
+    label: 'Asama bazli odeme',
     description: 'Proje fazlarina gore parcali tahsilat.',
     dueInDays: 21,
     items: [

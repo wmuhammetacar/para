@@ -109,7 +109,7 @@ describe('InvoiceDetailPage', () => {
     );
 
     expect(await screen.findByText('FTR-2026-22')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'WA Hatirlat' }));
+    await user.click(screen.getByRole('button', { name: 'WhatsApp Hatirlat' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(

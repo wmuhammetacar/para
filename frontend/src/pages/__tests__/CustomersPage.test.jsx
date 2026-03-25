@@ -110,7 +110,7 @@ describe('CustomersPage', () => {
 
     await screen.findByText('Acar Insaat');
 
-    const form = screen.getByRole('button', { name: 'Client Ekle' }).closest('form');
+    const form = screen.getByRole('button', { name: 'Musteri Ekle' }).closest('form');
     const inputs = within(form).getAllByRole('textbox');
 
     await user.clear(inputs[0]);
@@ -121,7 +121,7 @@ describe('CustomersPage', () => {
     await user.type(inputs[2], 'yeni@firma.com');
     await user.clear(inputs[3]);
     await user.type(inputs[3], 'Ankara');
-    await user.click(screen.getByRole('button', { name: 'Client Ekle' }));
+    await user.click(screen.getByRole('button', { name: 'Musteri Ekle' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -134,7 +134,7 @@ describe('CustomersPage', () => {
       );
     });
 
-    expect(await screen.findByText('Yeni client kaydi eklendi.')).toBeInTheDocument();
+    expect(await screen.findByText('Yeni musteri kaydi eklendi.')).toBeInTheDocument();
   });
 
   test('shows validation error for invalid phone and skips API submit', async () => {
@@ -148,14 +148,14 @@ describe('CustomersPage', () => {
 
     await screen.findByText('Acar Insaat');
 
-    const form = screen.getByRole('button', { name: 'Client Ekle' }).closest('form');
+    const form = screen.getByRole('button', { name: 'Musteri Ekle' }).closest('form');
     const inputs = within(form).getAllByRole('textbox');
 
     await user.clear(inputs[0]);
     await user.type(inputs[0], 'Telefon Test');
     await user.clear(inputs[1]);
     await user.type(inputs[1], 'abc-123');
-    await user.click(screen.getByRole('button', { name: 'Client Ekle' }));
+    await user.click(screen.getByRole('button', { name: 'Musteri Ekle' }));
 
     expect(await screen.findByText('Telefon formati gecersiz.')).toBeInTheDocument();
     expect(apiRequestMock).not.toHaveBeenCalledWith(
@@ -194,7 +194,7 @@ describe('CustomersPage', () => {
       );
     });
 
-    expect(await screen.findByText('Client kaydi guncellendi.')).toBeInTheDocument();
+    expect(await screen.findByText('Musteri kaydi guncellendi.')).toBeInTheDocument();
 
     const updatedRow = (await screen.findByText('Acar Insaat Revize')).closest('tr');
     await user.click(within(updatedRow).getByRole('button', { name: 'Sil' }));
@@ -209,7 +209,7 @@ describe('CustomersPage', () => {
       );
     });
 
-    expect(await screen.findByText('Client kaydi silindi.')).toBeInTheDocument();
+    expect(await screen.findByText('Musteri kaydi silindi.')).toBeInTheDocument();
     confirmMock.mockRestore();
   });
 });

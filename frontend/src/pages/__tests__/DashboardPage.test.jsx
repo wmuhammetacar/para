@@ -158,11 +158,10 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     render(<DashboardPage />);
 
-    expect(await screen.findByText('Toplam Client')).toBeInTheDocument();
-    expect(screen.getByText('Son Operasyon Hareketleri')).toBeInTheDocument();
-    expect(screen.getByText('Tekliften Tahsilata Donusum')).toBeInTheDocument();
-    expect(screen.getByText('6 Aylik Operasyon Trendi')).toBeInTheDocument();
-    expect(screen.getByText('Tahsilat Faturasi Olusturuldu')).toBeInTheDocument();
+    expect(await screen.findByText('Toplam Musteri')).toBeInTheDocument();
+    expect(screen.getByText('Son Hareketler')).toBeInTheDocument();
+    expect(screen.getByText('Donusum Ozeti')).toBeInTheDocument();
+    expect(screen.getByText('Fatura Olusturuldu')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/stats?period=all', {

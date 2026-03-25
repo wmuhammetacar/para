@@ -74,8 +74,8 @@ export default function QuoteDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teklif Dosyasi"
-        description="Client bilgileri, hizmet kalemleri ve teklif PDF ciktilari"
+        title="Teklif Detayi"
+        description="Musteri bilgileri ve teklif kalemleri"
         actions={
           <>
             <Link to="/quotes" className="btn-secondary">
@@ -108,7 +108,7 @@ export default function QuoteDetailPage() {
         <>
           <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
             <div className="card">
-              <h3 className="panel-title">Teklif Ozet Bilgisi</h3>
+              <h3 className="panel-title">Teklif Ozeti</h3>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-slate-500">Teklif No:</span>{' '}
@@ -119,7 +119,7 @@ export default function QuoteDetailPage() {
                   <span className="font-medium text-slate-800">{formatDate(quote.date)}</span>
                 </p>
                 <p>
-                  <span className="text-slate-500">Client / Brand:</span>{' '}
+                  <span className="text-slate-500">Musteri:</span>{' '}
                   <span className="font-medium text-slate-800">{quote.customer_name || '-'}</span>
                 </p>
                 <p>

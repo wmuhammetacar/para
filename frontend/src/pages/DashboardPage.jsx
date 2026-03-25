@@ -4,9 +4,9 @@ import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 
 const statsConfig = [
-  { key: 'totalCustomers', label: 'Toplam Client', note: 'Ajans portfoyundeki aktif client hesaplari' },
-  { key: 'totalQuotes', label: 'Aktif Teklifler', note: 'Client onayi ve geri donus bekleyen teklifler' },
-  { key: 'pendingInvoiceCount', label: 'Aktif Faturalar', note: 'Tahsilati tamamlanmamis fatura adedi' }
+  { key: 'totalCustomers', label: 'Toplam Musteri', note: 'Kayitli musteri sayisi' },
+  { key: 'totalQuotes', label: 'Aktif Teklif', note: 'Onay bekleyen veya acik teklifler' },
+  { key: 'pendingInvoiceCount', label: 'Aktif Fatura', note: 'Tahsilati tamamlanmamis fatura adedi' }
 ];
 
 const periodOptions = [
@@ -20,15 +20,15 @@ const activityEventLabelMap = {
   AUTH_REGISTER_SUCCESS: 'Kayit Basarili',
   AUTH_LOGIN_SUCCESS: 'Giris Basarili',
   AUTH_LOGIN_FAILED: 'Giris Basarisiz',
-  CUSTOMER_CREATED: 'Client Eklendi',
-  CUSTOMER_UPDATED: 'Client Guncellendi',
-  CUSTOMER_DELETED: 'Client Arsivlendi',
-  QUOTE_CREATED: 'Teklif Dosyasi Olusturuldu',
-  QUOTE_UPDATED: 'Teklif Dosyasi Guncellendi',
-  QUOTE_DELETED: 'Teklif Dosyasi Silindi',
-  INVOICE_CREATED: 'Tahsilat Faturasi Olusturuldu',
-  INVOICE_UPDATED: 'Tahsilat Faturasi Guncellendi',
-  INVOICE_DELETED: 'Tahsilat Faturasi Silindi',
+  CUSTOMER_CREATED: 'Musteri Eklendi',
+  CUSTOMER_UPDATED: 'Musteri Guncellendi',
+  CUSTOMER_DELETED: 'Musteri Silindi',
+  QUOTE_CREATED: 'Teklif Olusturuldu',
+  QUOTE_UPDATED: 'Teklif Guncellendi',
+  QUOTE_DELETED: 'Teklif Silindi',
+  INVOICE_CREATED: 'Fatura Olusturuldu',
+  INVOICE_UPDATED: 'Fatura Guncellendi',
+  INVOICE_DELETED: 'Fatura Silindi',
   INVOICE_PAYMENT_UPDATED: 'Tahsilat Durumu Guncellendi',
   INVOICE_BULK_PAYMENT_UPDATED: 'Toplu Tahsilat Durumu Guncellendi',
   INVOICE_REMINDER_CREATED: 'Tahsilat Hatirlatmasi Gonderildi'
@@ -215,13 +215,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ajans Operasyon Paneli"
-        description="Client, teklif, fatura ve tahsilat akisinda bugun aksiyon gerektiren alanlari tek ekranda izleyin"
+        title="Panel"
+        description="Bugun oncelik gerektiren teklif, fatura ve tahsilat durumlarini izleyin."
       />
 
-      <div className="card">
+        <div className="card">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="chip bg-slate-100 text-slate-700">Operasyon Donemi</div>
+          <div className="chip bg-slate-100 text-slate-700">Donem</div>
           {periodOptions.map((option) => (
             <button
               key={option.value}
@@ -236,9 +236,9 @@ export default function DashboardPage() {
               {option.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-500">Secili Donem: {stats.periodLabel || 'Tum Zamanlar'}</span>
+          <span className="ml-auto text-xs text-slate-500">Secili donem: {stats.periodLabel || 'Tum Zamanlar'}</span>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Tarih Araligi: {periodRangeText}</p>
+        <p className="mt-2 text-xs text-slate-500">Tarih araligi: {periodRangeText}</p>
       </div>
 
       {error ? <div className="status-error">{error}</div> : null}
@@ -268,7 +268,7 @@ export default function DashboardPage() {
           <div className="card bg-gradient-to-br from-brand-600 via-brand-600 to-brand-700 text-white">
             <p className="text-sm text-brand-100">Beklenen Gelir</p>
             <p className="mt-2 text-3xl font-bold">{formatCurrency(stats.pendingReceivable)}</p>
-            <p className="mt-3 text-xs text-brand-100">Acil faturalardan kalan tahsilat | Guncelleme: {updatedAt}</p>
+            <p className="mt-3 text-xs text-brand-100">Acik faturalardan kalan tahsilat | Guncelleme: {updatedAt}</p>
           </div>
         </div>
       ) : null}
@@ -279,7 +279,7 @@ export default function DashboardPage() {
             <p className="text-sm text-slate-500">Takipteki Tahsilat</p>
             <p className="mt-2 text-3xl font-bold text-amber-700">{formatCurrency(stats.pendingReceivable)}</p>
             <p className="mt-3 text-xs text-slate-500">
-              Odeme bekleyen toplam {stats.pendingInvoiceCount} aktif fatura
+              Odeme bekleyen toplam {stats.pendingInvoiceCount} fatura
             </p>
           </div>
           <div className="stat-card border-l-4 border-l-rose-500">
@@ -292,113 +292,45 @@ export default function DashboardPage() {
           <div className="stat-card border-l-4 border-l-sky-500">
             <p className="text-sm text-slate-500">Toplam Kesilen Ciro</p>
             <p className="mt-2 text-3xl font-bold text-sky-700">{formatCurrency(stats.totalRevenue)}</p>
-            <p className="mt-3 text-xs text-slate-500">Tum donem boyunca olusan fatura toplami</p>
+            <p className="mt-3 text-xs text-slate-500">Tum donemde kesilen fatura toplami</p>
           </div>
         </div>
       ) : null}
 
       {!loading ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Tekliften Tahsilata Donusum</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Son {growth.periodDays || 0} gunluk teklif-fatura-tahsilat akisi
-            </p>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Teklif - Fatura Donusumu</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">%{growth.funnel?.quoteToInvoiceRate ?? 0}</p>
-                <p className="mt-2 text-xs text-slate-500">
-                  {growth.funnel?.quotes ?? 0} tekliften {growth.funnel?.invoices ?? 0} fatura
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Fatura - Tahsilat Donusumu</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">%{growth.funnel?.invoiceToPaidRate ?? 0}</p>
-                <p className="mt-2 text-xs text-slate-500">
-                  {growth.funnel?.invoices ?? 0} faturadan {growth.funnel?.paidInvoices ?? 0} tahsilat
-                </p>
-              </div>
+        <div className="card">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Donusum Ozeti</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Son {growth.periodDays || 0} gunun teklif-fatura-tahsilat gorunumu
+              </p>
             </div>
-
-            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">Operasyon Saglik Skoru</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{growth.health?.score ?? 0}</p>
-              <p className="mt-2 text-xs text-slate-500">{growth.health?.insight || '-'}</p>
-            </div>
+            <p className="text-xs text-slate-500">Saglik skoru: {growth.health?.score ?? 0}</p>
           </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Gelir ve Tahsilat Kompozisyonu</h3>
-            <p className="mt-1 text-sm text-slate-600">Ajans owner icin tahsilat baskisi gorunumu</p>
-
-            <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Kesilen Fatura Toplami</p>
-                <p className="mt-1 text-xl font-bold text-slate-900">
-                  {formatCurrency(growth.revenue?.issued || 0)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-emerald-50 p-3">
-                <p className="text-xs text-emerald-700">Tahsil Edilen Gelir</p>
-                <p className="mt-1 text-xl font-bold text-emerald-700">
-                  {formatCurrency(growth.revenue?.collected || 0)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs text-amber-700">Acik Alacak</p>
-                <p className="mt-1 text-xl font-bold text-amber-700">
-                  {formatCurrency(growth.revenue?.openReceivable || 0)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
-                <p className="text-xs text-rose-700">Vadesi Gecikmis</p>
-                <p className="mt-1 text-xl font-bold text-rose-700">
-                  {formatCurrency(growth.revenue?.overdueReceivable || 0)}
-                </p>
-              </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Tekliften Faturaya</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">%{growth.funnel?.quoteToInvoiceRate ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Faturadan Tahsilata</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">%{growth.funnel?.invoiceToPaidRate ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Kesilen Tutar</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">{formatCurrency(growth.revenue?.issued || 0)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Tahsil Edilen</p>
+              <p className="mt-1 text-xl font-bold text-emerald-700">
+                {formatCurrency(growth.revenue?.collected || 0)}
+              </p>
             </div>
           </div>
-        </div>
-      ) : null}
 
-      {!loading ? (
-        <div className="card overflow-x-auto">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-900">6 Aylik Operasyon Trendi</h3>
-            <p className="text-xs text-slate-500">Fatura olusumu ve tahsilat ritmi</p>
-          </div>
-
-          <table className="mt-4 min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-500">
-                <th className="py-2 pr-4">Ay</th>
-                <th className="py-2 pr-4">Fatura</th>
-                <th className="py-2 pr-4">Tahsilat (Adet)</th>
-                <th className="py-2 pr-4">Kesilen Tutar</th>
-                <th className="py-2 pr-4">Tahsil Edilen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(Array.isArray(growth.trend) ? growth.trend : []).map((row) => (
-                <tr key={row.monthKey} className="border-b border-slate-100">
-                  <td className="py-3 pr-4 font-medium text-slate-800">{row.label || row.monthKey}</td>
-                  <td className="table-cell-muted py-3 pr-4">{row.createdInvoices ?? 0}</td>
-                  <td className="table-cell-muted py-3 pr-4">{row.paidInvoices ?? 0}</td>
-                  <td className="table-cell-muted py-3 pr-4">{formatCurrency(row.issuedRevenue || 0)}</td>
-                  <td className="table-cell-muted py-3 pr-4">{formatCurrency(row.collectedRevenue || 0)}</td>
-                </tr>
-              ))}
-              {!growth.trend?.length ? (
-                <tr>
-                  <td className="py-8 text-center text-slate-500" colSpan={5}>
-                    Bu donem icin trend verisi olusmadi.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <p className="mt-3 text-xs text-slate-500">{growth.health?.insight || '-'}</p>
         </div>
       ) : null}
 
@@ -432,7 +364,7 @@ export default function DashboardPage() {
       {!loading ? (
         <div className="card overflow-x-auto">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-900">Son Operasyon Hareketleri</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Son Hareketler</h3>
             <p className="text-xs text-slate-500">Aksiyon kayitlari (son 8)</p>
           </div>
 

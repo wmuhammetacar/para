@@ -2,15 +2,15 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const primaryNavItems = [
-  { to: '/dashboard', label: 'Ajans Paneli', hint: 'Gunluk operasyon ve tahsilat takibi' },
-  { to: '/customers', label: 'Clientlar', hint: 'Client / brand hesaplari' },
-  { to: '/quotes', label: 'Teklif Akisi', hint: 'Proje tekliflerini yonetin' },
-  { to: '/invoices', label: 'Fatura & Tahsilat', hint: 'Tahsilat operasyonunu yonetin' }
+  { to: '/dashboard', label: 'Panel', hint: 'Bugun takip edilmesi gerekenler' },
+  { to: '/customers', label: 'Musteriler', hint: 'Musteri kayitlarini yonetin' },
+  { to: '/quotes', label: 'Teklifler', hint: 'Teklif olusturun ve takip edin' },
+  { to: '/invoices', label: 'Faturalar', hint: 'Tahsilat durumunu izleyin' }
 ];
 
 const secondaryNavItems = [
-  { to: '/onboarding', label: 'Kurulum', hint: 'Hesap aktivasyonu' },
-  { to: '/plans', label: 'Abonelik', hint: 'Plan ve kullanim limiti' }
+  { to: '/onboarding', label: 'Kurulum', hint: 'Ilk adimlari tamamlayin' },
+  { to: '/plans', label: 'Paket', hint: 'Paket ve kullanim limiti' }
 ];
 
 export default function AppLayout() {
@@ -29,9 +29,8 @@ export default function AppLayout() {
           <div className="flex items-center justify-between lg:block">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">Teklifim</h1>
-              <p className="mt-1 text-xs text-slate-300">Agency Operations Platform</p>
+              <p className="mt-1 text-xs text-slate-300">Ajans is akisi</p>
             </div>
-            <span className="chip bg-brand-100 text-brand-700 lg:mt-4">Agency Edition</span>
           </div>
 
           <nav className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:mt-8 lg:grid-cols-1">
@@ -54,7 +53,7 @@ export default function AppLayout() {
           </nav>
 
           <div className="mt-4 border-t border-slate-700/80 pt-4">
-            <p className="px-1 text-[11px] uppercase tracking-wide text-slate-400">Platform</p>
+            <p className="px-1 text-[11px] uppercase tracking-wide text-slate-400">Yonetim</p>
             <nav className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1">
               {secondaryNavItems.map((item) => (
                 <NavLink
@@ -78,9 +77,6 @@ export default function AppLayout() {
           <div className="mt-6 rounded-xl border border-slate-700/90 bg-slate-900/60 p-3 text-xs text-slate-300 lg:mt-10">
             <p className="font-semibold text-white">{user?.companyName || 'Teklifim'}</p>
             <p className="mt-1 break-all">{user?.email}</p>
-            <p className="mt-1 text-[11px] uppercase tracking-wide text-brand-100">
-              Paket: {(user?.planCode || 'starter').toUpperCase()}
-            </p>
             <button
               type="button"
               onClick={logout}
@@ -95,11 +91,11 @@ export default function AppLayout() {
           <header className="card mb-6 fade-in bg-white/85 backdrop-blur-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
-                <p className="text-sm text-slate-500">Agency Operations Hub</p>
+                <p className="text-sm text-slate-500">Genel gorunum</p>
                 <p className="text-lg font-semibold text-slate-900">{user?.companyName || 'Teklifim'}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="chip">Collections Ready</span>
+                <span className="chip">Paket: {(user?.planCode || 'starter').toUpperCase()}</span>
                 <div className="chip self-start sm:self-auto">{currentDate}</div>
               </div>
             </div>

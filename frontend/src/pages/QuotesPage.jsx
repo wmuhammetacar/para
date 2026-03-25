@@ -287,7 +287,7 @@ export default function QuotesPage() {
       } else {
         await loadQuotes();
       }
-      showSuccess(isEditing ? 'Teklif dosyasi guncellendi.' : 'Teklif dosyasi kaydedildi.');
+      showSuccess(isEditing ? 'Teklif guncellendi.' : 'Teklif kaydedildi.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -321,9 +321,7 @@ export default function QuotesPage() {
   }
 
   async function removeQuote(quote) {
-    const shouldDelete = window.confirm(
-      `${quote.quote_number} numarali teklif dosyasini silmek istediginize emin misiniz?`
-    );
+    const shouldDelete = window.confirm(`${quote.quote_number} numarali teklifi silmek istediginize emin misiniz?`);
     if (!shouldDelete) {
       return;
     }
@@ -342,7 +340,7 @@ export default function QuotesPage() {
       } else {
         await loadQuotes();
       }
-      showSuccess('Teklif dosyasi silindi.');
+      showSuccess('Teklif silindi.');
     } catch (deleteError) {
       setError(deleteError.message);
     }
@@ -366,26 +364,26 @@ export default function QuotesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teklif Akisi"
-        description="Client tekliflerini operasyonel standartta olusturun, takip edin ve profesyonel PDF olarak paylasin"
+        title="Teklifler"
+        description="Teklif olusturun, takip edin ve PDF olarak gonderin."
       />
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div ref={formCardRef} className="card">
-          <h3 className="panel-title">{editingId ? 'Teklif Dosyasini Duzenle' : 'Yeni Teklif Dosyasi'}</h3>
-          <p className="panel-description">Ajans hizmet kalemlerini girin, toplam otomatik hesaplansin ve dosya kaydolsun.</p>
-          {loadingEdit ? <p className="mt-2 text-sm text-slate-500">Teklif dosyasi yukleniyor...</p> : null}
+          <h3 className="panel-title">{editingId ? 'Teklifi Duzenle' : 'Yeni Teklif'}</h3>
+          <p className="panel-description">Musteri, tarih ve kalemleri girin. Toplam otomatik hesaplanir.</p>
+          {loadingEdit ? <p className="mt-2 text-sm text-slate-500">Teklif yukleniyor...</p> : null}
 
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm text-slate-600">Client / Brand</label>
+                <label className="mb-1 block text-sm text-slate-600">Musteri</label>
                 <select
                   value={form.customerId}
                   onChange={(event) => setForm((prev) => ({ ...prev, customerId: event.target.value }))}
                   required
                 >
-                  <option value="">Client secin</option>
+                  <option value="">Musteri secin</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}
@@ -431,16 +429,15 @@ export default function QuotesPage() {
         </div>
 
         <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Teklif Dosyasi</p>
+          <p className="text-sm text-slate-500">Toplam Teklif</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{totalQuotes}</p>
-          <p className="mt-3 text-sm text-slate-600">Bu Sayfada Beklenen Tutar</p>
+          <p className="mt-3 text-sm text-slate-600">Bu sayfadaki toplam tutar</p>
           <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(pageTotal)}</p>
           {customers.length === 0 ? (
             <p className="mt-4 text-xs text-amber-700">
-              Teklif olusturmak icin once Clientlar ekranindan kayit ekleyin.
+              Teklif olusturmak icin once Musteriler ekranindan kayit ekleyin.
             </p>
           ) : null}
-          <div className="mt-4 chip">Client'a Gonderime Hazir</div>
         </div>
       </div>
 
@@ -450,12 +447,12 @@ export default function QuotesPage() {
       <div className="card overflow-x-auto">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Teklif dosyalari ({totalQuotes}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
+            Teklifler ({totalQuotes}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
             Sayfa Toplami: {formatCurrency(pageTotal)}
           </p>
           <input
             type="text"
-            placeholder="Teklif ara (no, client, tarih)"
+            placeholder="Teklif ara (no, musteri, tarih)"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -469,7 +466,7 @@ export default function QuotesPage() {
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">
               <th className="py-2 pr-4">No</th>
-              <th className="py-2 pr-4">Client</th>
+              <th className="py-2 pr-4">Musteri</th>
               <th className="py-2 pr-4">Tarih</th>
               <th className="py-2 pr-4">Toplam</th>
               <th className="py-2">Islemler</th>
@@ -507,7 +504,7 @@ export default function QuotesPage() {
             {loading ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={5}>
-                  Teklif dosyalari yukleniyor...
+                  Teklifler yukleniyor...
                 </td>
               </tr>
             ) : null}

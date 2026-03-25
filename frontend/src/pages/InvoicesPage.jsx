@@ -526,7 +526,7 @@ export default function InvoicesPage() {
       } else {
         await loadInvoices();
       }
-      showSuccess(isEditing ? 'Fatura dosyasi guncellendi.' : 'Fatura dosyasi kaydedildi.');
+      showSuccess(isEditing ? 'Fatura guncellendi.' : 'Fatura kaydedildi.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -561,9 +561,7 @@ export default function InvoicesPage() {
   }
 
   async function removeInvoice(invoice) {
-    const shouldDelete = window.confirm(
-      `${invoice.invoice_number} numarali fatura dosyasini silmek istediginize emin misiniz?`
-    );
+    const shouldDelete = window.confirm(`${invoice.invoice_number} numarali faturayi silmek istediginize emin misiniz?`);
     if (!shouldDelete) {
       return;
     }
@@ -582,7 +580,7 @@ export default function InvoicesPage() {
       } else {
         await loadInvoices();
       }
-      showSuccess('Fatura dosyasi silindi.');
+      showSuccess('Fatura silindi.');
     } catch (deleteError) {
       setError(deleteError.message);
     }
@@ -612,7 +610,7 @@ export default function InvoicesPage() {
       } else {
         await loadInvoices();
       }
-      showSuccess('Teklif, fatura dosyasina donusturuldu.');
+      showSuccess('Teklif faturaya donusturuldu.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -770,14 +768,15 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fatura ve Tahsilat"
-        description="Tekliften fatura donusumunu, odeme takibini ve client tahsilat hatirlatmalarini tek operasyon panelinden yonetin"
+        title="Faturalar"
+        description="Faturalari izleyin, tahsilati takip edin ve gerekirse hatirlatma gonderin."
       />
 
-      <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
+      <div className="grid gap-6">
+        <div className="order-1 grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="card">
-          <h3 className="panel-title">Tekliften Fatura Dosyasi Uret</h3>
-          <p className="panel-description">Onaylanan teklifi secin ve tek adimda tahsilat akisini baslatin.</p>
+          <h3 className="panel-title">Tekliften Fatura Olustur</h3>
+          <p className="panel-description">Onaylanan teklifi secin ve faturayi tek adimda olusturun.</p>
           <div className="mt-3 flex flex-col gap-2 md:flex-row">
             <select value={fromQuoteId} onChange={(event) => setFromQuoteId(event.target.value)}>
               <option value="">Teklif secin</option>
@@ -793,26 +792,25 @@ export default function InvoicesPage() {
               onClick={createFromQuote}
               disabled={savingFromQuote}
             >
-              {savingFromQuote ? 'Olusturuluyor...' : 'Fatura Dosyasina Donustur'}
+              {savingFromQuote ? 'Olusturuluyor...' : 'Fatura Olustur'}
             </button>
           </div>
         </div>
 
         <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Fatura Dosyasi</p>
+          <p className="text-sm text-slate-500">Toplam Fatura</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{totalInvoices}</p>
           <p className="mt-3 text-sm text-slate-600">Toplam Kesilen Tutar</p>
           <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(invoicesTotal)}</p>
-          <p className="mt-3 text-sm text-slate-600">Acil Tahsilat</p>
+          <p className="mt-3 text-sm text-slate-600">Acik Tahsilat</p>
           <p className="mt-1 text-lg font-semibold text-amber-700">{formatCurrency(pendingReceivable)}</p>
           <p className="mt-2 text-xs text-rose-700">Gecikmeye Dusen: {formatCurrency(overdueReceivable)}</p>
-          <div className="mt-4 chip">Collections Control</div>
         </div>
       </div>
 
-      <div className="card">
+        <div className="order-2 card">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">Tahsilat Durumu:</span>
+          <span className="text-sm font-medium text-slate-600">Durum:</span>
           {[
             { key: 'all', label: 'Tum Faturalar' },
             { key: 'pending', label: 'Bekleyen' },
@@ -831,7 +829,7 @@ export default function InvoicesPage() {
               {option.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-500">Secili Fatura: {selectedCount}</span>
+          <span className="ml-auto text-xs text-slate-500">Secili kayit: {selectedCount}</span>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -840,7 +838,7 @@ export default function InvoicesPage() {
             onClick={() => bulkUpdatePaymentStatus('paid')}
             disabled={savingBulkStatus || selectedCount === 0}
           >
-            {savingBulkStatus ? 'Isleniyor...' : 'Toplu Tahsil Et'}
+            {savingBulkStatus ? 'Isleniyor...' : 'Secilenleri Tahsil Et'}
           </button>
           <button
             type="button"
@@ -848,7 +846,7 @@ export default function InvoicesPage() {
             onClick={() => bulkUpdatePaymentStatus('pending')}
             disabled={savingBulkStatus || selectedCount === 0}
           >
-            Toplu Takibe Al
+            Secilenleri Takibe Al
           </button>
           {selectedCount > 0 ? (
             <button type="button" className="btn-secondary" onClick={() => setSelectedInvoiceIds([])}>
@@ -858,11 +856,11 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div className="card">
+        <div className="order-5 card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="panel-title">Tahsilat Hatirlatma Akisi</h3>
-            <p className="panel-description">Hatirlatma performansi, teslim durumu ve yeniden deneme kontrolu.</p>
+            <h3 className="panel-title">Hatirlatma Kayitlari</h3>
+            <p className="panel-description">Ikincil izleme alani: kuyruk ve hata durumlari.</p>
           </div>
           <div className="chip">
             Filtreli Kayit: {reminderOps.filteredCount}
@@ -886,35 +884,14 @@ export default function InvoicesPage() {
             <p className="text-xs text-rose-700">Hata</p>
             <p className="mt-1 text-lg font-semibold text-rose-800">{reminderSummary.failed}</p>
           </div>
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-            <p className="text-xs text-indigo-700">Hata Orani</p>
-            <p className="mt-1 text-lg font-semibold text-indigo-800">%{reminderSummary.failedRate}</p>
-          </div>
-          <div className="rounded-xl border border-lime-200 bg-lime-50 p-3">
-            <p className="text-xs text-lime-700">Planli Yeniden Deneme</p>
-            <p className="mt-1 text-lg font-semibold text-lime-800">{reminderSummary.scheduledRetries}</p>
-          </div>
-          <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
-            <p className="text-xs text-orange-700">24s Hata</p>
-            <p className="mt-1 text-lg font-semibold text-orange-800">{reminderSummary.failedLast24h}</p>
-          </div>
-          <div className="rounded-xl border border-sky-200 bg-sky-50 p-3">
-            <p className="text-xs text-sky-700">WhatsApp / E-posta</p>
-            <p className="mt-1 text-lg font-semibold text-sky-800">
-              {reminderSummary.whatsapp} / {reminderSummary.email}
-            </p>
-          </div>
-          <div className="rounded-xl border border-violet-200 bg-violet-50 p-3">
-            <p className="text-xs text-violet-700">En Eski Kuyruk</p>
-            <p className="mt-1 text-lg font-semibold text-violet-800">
-              {reminderSummary.oldestQueuedMinutes === null ? '-' : `${reminderSummary.oldestQueuedMinutes} dk`}
-            </p>
-          </div>
-          <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3">
-            <p className="text-xs text-cyan-700">Yeniden Deneme Limiti</p>
-            <p className="mt-1 text-lg font-semibold text-cyan-800">{reminderPolicy.maxRetryCount}</p>
-          </div>
         </div>
+        <p className="mt-3 text-xs text-slate-500">
+          Hata orani: %{reminderSummary.failedRate} | 24s hata: {reminderSummary.failedLast24h} | Planli deneme:{' '}
+          {reminderSummary.scheduledRetries} | WhatsApp/E-posta: {reminderSummary.whatsapp}/{reminderSummary.email} |
+          En eski kuyruk:{' '}
+          {reminderSummary.oldestQueuedMinutes === null ? '-' : `${reminderSummary.oldestQueuedMinutes} dk`} | Deneme
+          limiti: {reminderPolicy.maxRetryCount}
+        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-slate-600">Hatirlatma Durumu:</span>
@@ -932,9 +909,7 @@ export default function InvoicesPage() {
               {option.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-500">
-            En Sikisik Hata: {reminderErrorBreakdown[0]?.message || '-'}
-          </span>
+          <span className="ml-auto text-xs text-slate-500">En sik hata: {reminderErrorBreakdown[0]?.message || '-'}</span>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -967,7 +942,7 @@ export default function InvoicesPage() {
               {loadingReminderOps ? (
                 <tr>
                   <td className="py-6 text-center text-slate-500" colSpan={8}>
-                    Hatirlatma operasyon kayitlari yukleniyor...
+                    Hatirlatma kayitlari yukleniyor...
                   </td>
                 </tr>
               ) : null}
@@ -1029,22 +1004,22 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div ref={formCardRef} className="card">
-        <h3 className="panel-title">{editingId ? 'Fatura Dosyasini Duzenle' : 'Manuel Fatura Dosyasi Olustur'}</h3>
-        <p className="panel-description">Ajans hizmet kalemlerini, vade planini ve tahsilat akis detaylarini buradan girin.</p>
+        <div ref={formCardRef} className="order-4 card">
+        <h3 className="panel-title">{editingId ? 'Faturayi Duzenle' : 'Manuel Fatura Olustur'}</h3>
+        <p className="panel-description">Musteri, tarih, vade ve kalemleri girin.</p>
 
         <form className="mt-4 space-y-4" onSubmit={handleManualSubmit}>
           {loadingEdit ? <p className="text-sm text-slate-500">Fatura bilgisi yukleniyor...</p> : null}
 
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <label className="mb-1 block text-sm text-slate-600">Client / Brand</label>
+              <label className="mb-1 block text-sm text-slate-600">Musteri</label>
               <select
                 value={form.customerId}
                 onChange={(event) => setForm((prev) => ({ ...prev, customerId: event.target.value }))}
                 required
               >
-                <option value="">Client secin</option>
+                <option value="">Musteri secin</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
@@ -1099,18 +1074,22 @@ export default function InvoicesPage() {
         </form>
       </div>
 
-      {success ? <div className="status-success">{success}</div> : null}
-      {error ? <div className="status-error">{error}</div> : null}
+        {success ? <div className="order-0 status-success">{success}</div> : null}
+        {error ? <div className="order-0 status-error">{error}</div> : null}
 
-      <div className="card overflow-x-auto">
+        <div className="order-3 card overflow-x-auto">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="text-lg font-semibold text-slate-900">Fatura Listesi</h3>
+          <p className="text-xs text-slate-500">Birincil takip alani</p>
+        </div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Fatura dosyalari ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
-            Sayfa Toplami: {formatCurrency(invoicesTotal)}
+            Faturalar ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} - Sayfa
+            toplami: {formatCurrency(invoicesTotal)}
           </p>
           <input
             type="text"
-            placeholder="Fatura ara (no, client, tarih)"
+            placeholder="Fatura ara (no, musteri, tarih)"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -1127,7 +1106,7 @@ export default function InvoicesPage() {
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
               </th>
               <th className="py-2 pr-4">No</th>
-              <th className="py-2 pr-4">Client</th>
+              <th className="py-2 pr-4">Musteri</th>
               <th className="py-2 pr-4">Tarih</th>
               <th className="py-2 pr-4">Vade</th>
               <th className="py-2 pr-4">Durum</th>
@@ -1175,7 +1154,7 @@ export default function InvoicesPage() {
                         (invoice.payment_status || 'pending') === 'paid'
                       }
                     >
-                      {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WA Hatirlat'}
+                      {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
                     </button>
                     <button
                       type="button"
@@ -1218,7 +1197,7 @@ export default function InvoicesPage() {
             {loading ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={8}>
-                  Fatura dosyalari yukleniyor...
+                  Faturalar yukleniyor...
                 </td>
               </tr>
             ) : null}
@@ -1254,6 +1233,7 @@ export default function InvoicesPage() {
               Sonraki
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -100,15 +100,15 @@ describe('OnboardingPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Ajans Kurulum Akisi')).toBeInTheDocument();
+    expect(await screen.findByText('Kurulum')).toBeInTheDocument();
     expect(await screen.findByText('%50')).toBeInTheDocument();
     expect(await screen.findByText('Tamamlanan Adim: 2 / 4')).toBeInTheDocument();
     expect(await screen.findByText('Kalan Adim')).toBeInTheDocument();
     expect(await screen.findByText('8 dk')).toBeInTheDocument();
-    expect(await screen.findByText('Momentum: Yolda')).toBeInTheDocument();
+    expect(await screen.findByText('Kurulum Durumu: Yolda')).toBeInTheDocument();
     const invoiceStepLabels = await screen.findAllByText('Ilk Fatura Olusturma');
     expect(invoiceStepLabels.length).toBeGreaterThan(0);
-    expect(await screen.findByText('Hizli Etki Alanlari')).toBeInTheDocument();
+    expect(await screen.findByText('Oncelikli Adimlar')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Durumu Yenile' }));
 

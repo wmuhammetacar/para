@@ -58,8 +58,8 @@ describe('PilotReadinessPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Pilot Hardening')).toBeInTheDocument();
-    expect(await screen.findByText('Pilot Kontrol Listesi')).toBeInTheDocument();
+    expect(await screen.findByText('Hazirlik Kontrolu')).toBeInTheDocument();
+    expect(await screen.findByText('Kontrol Listesi')).toBeInTheDocument();
     expect(await screen.findByText('Onboarding Tamamlama')).toBeInTheDocument();
     expect(await screen.findByText('Oncelikli Aksiyonlar')).toBeInTheDocument();
 

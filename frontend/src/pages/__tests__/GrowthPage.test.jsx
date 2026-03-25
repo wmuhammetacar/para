@@ -98,8 +98,8 @@ describe('GrowthPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Growth Analitigi')).toBeInTheDocument();
-    expect(await screen.findByText('Cohort Retention')).toBeInTheDocument();
+    expect(await screen.findByText('Gelisim Analizi')).toBeInTheDocument();
+    expect(await screen.findByText('Kohort Tutulma Orani')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/growth?period=90&cohortMonths=6', {

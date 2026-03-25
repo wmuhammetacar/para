@@ -223,8 +223,8 @@ export default function InvoiceDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fatura Dosyasi"
-        description="Tahsilat durumu, client bilgileri ve fatura PDF ciktilari"
+        title="Fatura Detayi"
+        description="Tahsilat durumu, musteri bilgileri ve fatura kalemleri"
         actions={
           <>
             <Link to="/invoices" className="btn-secondary">
@@ -242,7 +242,7 @@ export default function InvoiceDetailPage() {
                 disabled={(invoice.payment_status || 'pending') === 'paid' || sendingReminder === 'whatsapp'}
                 onClick={() => handleReminder('whatsapp')}
               >
-                {sendingReminder === 'whatsapp' ? 'Hazirlaniyor...' : 'WA Hatirlat'}
+                {sendingReminder === 'whatsapp' ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
               </button>
             ) : null}
             {invoice ? (
@@ -292,7 +292,7 @@ export default function InvoiceDetailPage() {
         <>
           <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
             <div className="card">
-              <h3 className="panel-title">Fatura Ozet Bilgisi</h3>
+              <h3 className="panel-title">Fatura Ozeti</h3>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-slate-500">Fatura No:</span>{' '}
@@ -307,7 +307,7 @@ export default function InvoiceDetailPage() {
                   <span className="font-medium text-slate-800">{formatDate(invoice.due_date || invoice.date)}</span>
                 </p>
                 <p>
-                  <span className="text-slate-500">Client / Brand:</span>{' '}
+                  <span className="text-slate-500">Musteri:</span>{' '}
                   <span className="font-medium text-slate-800">{invoice.customer_name || '-'}</span>
                 </p>
                 <p>

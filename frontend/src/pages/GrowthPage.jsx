@@ -10,10 +10,10 @@ const periodOptions = [
 ];
 
 const cohortOptions = [
-  { value: 3, label: '3 Ay Cohort' },
-  { value: 6, label: '6 Ay Cohort' },
-  { value: 9, label: '9 Ay Cohort' },
-  { value: 12, label: '12 Ay Cohort' }
+  { value: 3, label: '3 Ay Kohort' },
+  { value: 6, label: '6 Ay Kohort' },
+  { value: 9, label: '9 Ay Kohort' },
+  { value: 12, label: '12 Ay Kohort' }
 ];
 
 const emptyGrowth = {
@@ -96,8 +96,8 @@ export default function GrowthPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Growth Analitigi"
-        description="Donusum, retention cohort ve gelir trendlerini tek panelde izleyin."
+        title="Gelisim Analizi"
+        description="Donusum, kohort ve gelir trendlerini izleyin."
         actions={
           <button type="button" className="btn-secondary" onClick={fetchGrowth} disabled={loading}>
             {loading ? 'Yenileniyor...' : 'Durumu Yenile'}
@@ -183,7 +183,7 @@ export default function GrowthPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card">
             <h3 className="text-lg font-semibold text-slate-900">Donusum Hizi</h3>
-            <p className="mt-1 text-sm text-slate-600">Operasyonun satis dongusu hizi</p>
+            <p className="mt-1 text-sm text-slate-600">Satis dongusunun ortalama hizlari</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">Tekliften Faturaya</p>
@@ -197,7 +197,7 @@ export default function GrowthPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Growth Sagligi</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Is Akisi Sagligi</h3>
             <p className="mt-1 text-sm text-slate-600">{growth.health.insight}</p>
             <p className="mt-4 text-4xl font-bold text-slate-900">{growth.health.score}</p>
             <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">{growth.health.status}</p>
@@ -207,13 +207,13 @@ export default function GrowthPage() {
 
       {!loading ? (
         <div className="card overflow-x-auto">
-          <h3 className="text-lg font-semibold text-slate-900">Cohort Retention</h3>
-          <p className="mt-1 text-sm text-slate-600">Musteri cohortlarinin aylik aktivite devam oranlari</p>
+          <h3 className="text-lg font-semibold text-slate-900">Kohort Tutulma Orani</h3>
+          <p className="mt-1 text-sm text-slate-600">Musteri kohortlarinin aylik devam oranlari</p>
 
           <table className="mt-4 min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-slate-500">
-                <th className="py-2 pr-4">Cohort</th>
+                <th className="py-2 pr-4">Kohort</th>
                 <th className="py-2 pr-4">Boyut</th>
                 <th className="py-2 pr-4">M0</th>
                 <th className="py-2 pr-4">M1</th>
@@ -250,7 +250,7 @@ export default function GrowthPage() {
               {!growth.retention?.length ? (
                 <tr>
                   <td className="py-8 text-center text-slate-500" colSpan={6}>
-                    Cohort verisi bulunamadi.
+                    Kohort verisi bulunamadi.
                   </td>
                 </tr>
               ) : null}
