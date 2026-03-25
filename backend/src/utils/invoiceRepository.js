@@ -238,6 +238,30 @@ export async function getReminderJobById(userId, reminderId) {
   );
 }
 
+export async function getReminderJobRecord(userId, reminderId) {
+  return get(
+    `
+    SELECT
+      id,
+      invoice_id,
+      channel,
+      recipient,
+      message,
+      status,
+      delivery_url,
+      error_message,
+      retry_count,
+      last_retry_at,
+      next_attempt_at,
+      created_at,
+      processed_at
+    FROM reminder_jobs
+    WHERE id = ? AND user_id = ?
+    `,
+    [reminderId, userId]
+  );
+}
+
 export async function listReminderOpsErrorBreakdown(userId, limit = 5) {
   const normalizedLimit = Number.isInteger(limit) && limit > 0 ? limit : 5;
 
@@ -359,4 +383,42 @@ export async function listExistingInvoiceIds(userId, invoiceIds) {
     `,
     [userId, ...invoiceIds]
   );
+}
+
+export async function findQuote(userId, quoteId) {
+  return get(
+    `
+    SELECT id, customer_id
+    FROM quotes
+    WHERE id = ? AND user_id = ?
+    `,
+    [quoteId, userId]
+  );
+}
+
+export async function listQuoteItems(quoteId) {
+  return all(
+    `
+    SELECT name, quantity, unit_price, total
+    FROM items
+    WHERE quote_id = ?
+    ORDER BY id ASC
+    `,
+    [quoteId]
+  );
+}
+
+export async function getInvoiceSummary(userId, invoiceId) {
+  return get(
+    `
+    SELECT id, invoice_number, due_date, payment_status, paid_at
+    FROM invoices
+    WHERE id = ? AND user_id = ?
+    `,
+    [invoiceId, userId]
+  );
+}
+
+export async function getInvoiceIdentity(userId, invoiceId) {
+  return get('SELECT id FROM invoices WHERE id = ? AND user_id = ?', [invoiceId, userId]);
 }
