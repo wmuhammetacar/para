@@ -1,6 +1,8 @@
-# Teklifim MVP
+# Teklifim Agency Operations
 
-Teklifim, Turkiye'deki kucuk isletmeler icin hizli teklif ve fatura yonetimi sunan bir SaaS MVP uygulamasidir.
+Teklifim, dijital ajanslar icin konumlandirilmis bir operasyon SaaS urunudur.
+Ana akis: `client -> teklif -> fatura -> odeme takibi -> hatirlatma`.
+Amac, ajans sahiplerinin tahsilat kontrolunu guclendirirken buyuk ERP karmasina girmeden profesyonel bir operasyon paneli sunmaktir.
 
 ## Tech Stack
 
@@ -10,13 +12,13 @@ Teklifim, Turkiye'deki kucuk isletmeler icin hizli teklif ve fatura yonetimi sun
 - Styling: TailwindCSS
 - PDF: PDFKit
 
-## Features (MVP Scope)
+## Features
 
 1. Email + password authentication
-2. Customer management (create, edit, delete, quick search)
-3. Quote management (create, edit, delete, detail view, items, auto total, PDF export)
-4. Invoice management (manual or from quote, create/edit/delete, detail view, due date + payment status tracking, PDF export, reminder queue: WhatsApp/E-posta, reminder ops panel + failed retry)
-5. Dashboard stats (customers, quotes, invoices, total revenue, pending receivable, overdue receivable, period filter: all/today/7/30)
+2. Client management (create, edit, delete, quick search)
+3. Quote workflow (create, edit, delete, detail view, service item presets, payment plan presets, auto total, PDF export)
+4. Invoice + collection workflow (manual or from quote, create/edit/delete, detail view, due date + payment status tracking, PDF export, reminder queue: WhatsApp/E-posta, reminder ops + failed retry)
+5. Agency dashboard (clients, active quotes, active invoices, expected revenue, overdue receivables, period filter: all/today/7/30)
 6. Onboarding activation flow (first customer/quote/invoice/reminder checklist + quick-win priorities + estimated completion time)
 7. Growth analytics panel (quote->invoice and invoice->payment conversion, 6-month trend, revenue composition)
 8. Package and pricing management (starter/standard package switch + limit usage tracking)

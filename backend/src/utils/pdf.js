@@ -133,7 +133,7 @@ function drawMainHeader(doc, payload) {
   doc
     .fontSize(10)
     .fillColor('#cbd5e1')
-    .text('Teklif ve Fatura Yonetim Platformu', left + 36, top + 52, {
+    .text('Agency Operations | Tekliften Tahsilata', left + 36, top + 52, {
       width: width - infoWidth - 70
     });
 
@@ -157,11 +157,11 @@ function drawMainHeader(doc, payload) {
     });
 
   const infoX = left + width - infoWidth - 2;
-  doc.fontSize(9).fillColor('#94a3b8').text('Belge No', infoX, top + 22, { width: infoWidth - 30 });
+  doc.fontSize(9).fillColor('#94a3b8').text('Dokuman No', infoX, top + 22, { width: infoWidth - 30 });
   doc.fontSize(12).fillColor('#ffffff').text(payload.documentNumber || '-', infoX, top + 35, {
     width: infoWidth - 30
   });
-  doc.fontSize(9).fillColor('#94a3b8').text('Belge Tarihi', infoX, top + 58, { width: infoWidth - 30 });
+  doc.fontSize(9).fillColor('#94a3b8').text('Dokuman Tarihi', infoX, top + 58, { width: infoWidth - 30 });
   doc.fontSize(11).fillColor('#ffffff').text(payload.date || '-', infoX, top + 71, {
     width: infoWidth - 30
   });
@@ -187,7 +187,7 @@ function drawInfoCards(doc, payload, startY) {
     THEME.cardBorder
   );
 
-  doc.fontSize(11).fillColor(THEME.textMain).text('Musteri Bilgileri', left + 14, startY + 14);
+  doc.fontSize(11).fillColor(THEME.textMain).text('Client / Brand Bilgileri', left + 14, startY + 14);
   doc.fontSize(10).fillColor(THEME.textSoft).text(`Ad: ${payload.customer.name || '-'}`, left + 14, startY + 35);
   doc.text(`Telefon: ${payload.customer.phone || '-'}`, left + 14, startY + 52);
   doc.text(`E-posta: ${payload.customer.email || '-'}`, left + 14, startY + 69);
@@ -196,12 +196,12 @@ function drawInfoCards(doc, payload, startY) {
   });
 
   const rightX = left + leftCardWidth + 26;
-  doc.fontSize(11).fillColor(THEME.textMain).text('Belge Bilgileri', rightX, startY + 14);
-  doc.fontSize(10).fillColor(THEME.textSoft).text(`Belge Tipi: ${payload.documentType}`, rightX, startY + 35);
-  doc.text(`Belge No: ${payload.documentNumber || '-'}`, rightX, startY + 52, {
+  doc.fontSize(11).fillColor(THEME.textMain).text('Dokuman Bilgileri', rightX, startY + 14);
+  doc.fontSize(10).fillColor(THEME.textSoft).text(`Dokuman Tipi: ${payload.documentType}`, rightX, startY + 35);
+  doc.text(`Dokuman No: ${payload.documentNumber || '-'}`, rightX, startY + 52, {
     width: rightCardWidth - 28
   });
-  doc.text(`Belge Tarihi: ${payload.date || '-'}`, rightX, startY + 69, {
+  doc.text(`Dokuman Tarihi: ${payload.date || '-'}`, rightX, startY + 69, {
     width: rightCardWidth - 28
   });
   doc.text(`Vade Tarihi: ${payload.dueDate || payload.date || '-'}`, rightX, startY + 84, {
@@ -216,7 +216,7 @@ function drawInfoCards(doc, payload, startY) {
   doc
     .fontSize(8)
     .fillColor(THEME.textMuted)
-    .text('Teklifim sistemi tarafindan otomatik uretilmistir.', rightX, startY + 123, {
+    .text('Teklifim Agency Operations tarafindan otomatik uretilmistir.', rightX, startY + 123, {
       width: rightCardWidth - 28
     });
 
@@ -270,7 +270,7 @@ function drawTableHeader(doc, y, columns) {
   doc.text('#', columns.noX + 8, y + 10, {
     width: columns.noWidth - 12
   });
-  doc.text('Urun / Hizmet', columns.nameX + 8, y + 10, {
+  doc.text('Hizmet Kalemi', columns.nameX + 8, y + 10, {
     width: columns.nameWidth - 12
   });
   doc.text('Miktar', columns.quantityX + 4, y + 10, {
@@ -363,6 +363,31 @@ function drawTotalCard(doc, y, payload) {
   });
 }
 
+function drawProjectTermsCard(doc, y, payload) {
+  const left = doc.page.margins.left;
+  const contentWidth = getContentWidth(doc);
+  const summaryWidth = 248;
+  const gap = 12;
+  const cardWidth = contentWidth - summaryWidth - gap;
+
+  if (cardWidth < 180) {
+    return;
+  }
+
+  drawRoundedCard(doc, left, y, cardWidth, 86, '#f8fafc', '#dbe2ee', 10);
+
+  doc.fontSize(10).fillColor('#334155').text('Proje / Hizmet Ozeti', left + 14, y + 14, {
+    width: cardWidth - 28
+  });
+  doc.fontSize(9).fillColor('#475569').text(payload.projectSummary || '-', left + 14, y + 31, {
+    width: cardWidth - 28,
+    height: 24
+  });
+  doc.fontSize(9).fillColor('#475569').text(`Odeme Kosulu: ${payload.paymentTerms || '-'}`, left + 14, y + 58, {
+    width: cardWidth - 28
+  });
+}
+
 function drawFooterNote(doc, payload) {
   const left = doc.page.margins.left;
   const width = getContentWidth(doc);
@@ -409,6 +434,8 @@ export function writeDocumentPdf(res, payload) {
     dueDate: payload.dueDate || payload.date || '-',
     paymentStatus: payload.paymentStatus || 'pending',
     paidAt: payload.paidAt || null,
+    projectSummary: payload.projectSummary || '',
+    paymentTerms: payload.paymentTerms || '',
     generatedAt: new Intl.DateTimeFormat('tr-TR', {
       day: '2-digit',
       month: '2-digit',
@@ -432,8 +459,8 @@ export function writeDocumentPdf(res, payload) {
     ...doc.info,
     Title: `${safePayload.documentType} - ${safePayload.documentNumber}`,
     Author: safePayload.companyName,
-    Subject: `${safePayload.documentType} Belgesi`,
-    Keywords: 'teklif, fatura, tahsilat, teklifim'
+    Subject: `${safePayload.documentType} Dokumani`,
+    Keywords: 'agency operations, teklif, fatura, tahsilat, teklifim'
   };
 
   doc.pipe(res);
@@ -485,6 +512,7 @@ export function writeDocumentPdf(res, payload) {
   }
 
   const finalY = Math.max(y + 16, doc.page.margins.top + 24);
+  drawProjectTermsCard(doc, finalY, safePayload);
   drawTotalCard(doc, finalY, safePayload);
   drawFooterNote(doc, safePayload);
 

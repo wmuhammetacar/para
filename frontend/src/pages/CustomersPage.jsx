@@ -119,11 +119,11 @@ export default function CustomersPage() {
     const address = form.address.trim();
 
     if (!name) {
-      return 'Musteri unvani zorunludur.';
+      return 'Client / brand adi zorunludur.';
     }
 
     if (name.length > 120) {
-      return 'Musteri unvani en fazla 120 karakter olabilir.';
+      return 'Client / brand adi en fazla 120 karakter olabilir.';
     }
 
     if (phone.length > 30) {
@@ -179,7 +179,7 @@ export default function CustomersPage() {
 
       resetForm();
       await loadCustomers();
-      showSuccess(isEditing ? 'Musteri kaydi guncellendi.' : 'Yeni musteri kaydi eklendi.');
+      showSuccess(isEditing ? 'Client kaydi guncellendi.' : 'Yeni client kaydi eklendi.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -198,7 +198,7 @@ export default function CustomersPage() {
   }
 
   async function removeCustomer(id) {
-    const shouldDelete = window.confirm('Bu musteri kaydini silmek istediginize emin misiniz?');
+    const shouldDelete = window.confirm('Bu client kaydini silmek istediginize emin misiniz?');
 
     if (!shouldDelete) {
       return;
@@ -211,7 +211,7 @@ export default function CustomersPage() {
         token
       });
       await loadCustomers();
-      showSuccess('Musteri kaydi silindi.');
+      showSuccess('Client kaydi silindi.');
     } catch (deleteError) {
       setError(deleteError.message);
     }
@@ -222,20 +222,20 @@ export default function CustomersPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Musteriler"
-        description="Musteri kayitlarini hizlica olusturun, guncelleyin ve operasyonunuzu tek panelden yonetin"
+        title="Clientlar"
+        description="Client / brand kayitlarini guncel tutarak tekliften tahsilata kadar tum ajans akislarini hizlandirin"
       />
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="card">
           <h3 className="panel-title">
-            {editingId ? 'Musteri Kaydini Duzenle' : 'Yeni Musteri Kaydi'}
+            {editingId ? 'Client Kaydini Duzenle' : 'Yeni Client Kaydi'}
           </h3>
-          <p className="panel-description">Guncel iletisim bilgilerini girerek cari listenizi canli tutun.</p>
+          <p className="panel-description">Client iletisim ve marka bilgilerini tek merkezde yonetin.</p>
 
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
             <div>
-              <label className="mb-1 block text-sm text-slate-600">Musteri Unvani</label>
+              <label className="mb-1 block text-sm text-slate-600">Client / Brand Adi</label>
               <input
                 type="text"
                 value={form.name}
@@ -277,7 +277,7 @@ export default function CustomersPage() {
 
             <div className="table-actions md:col-span-2">
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Kaydediliyor...' : editingId ? 'Degisiklikleri Kaydet' : 'Kaydi Olustur'}
+                {saving ? 'Kaydediliyor...' : editingId ? 'Degisiklikleri Kaydet' : 'Client Ekle'}
               </button>
               {editingId ? (
                 <button type="button" className="btn-secondary" onClick={resetForm}>
@@ -289,12 +289,12 @@ export default function CustomersPage() {
         </div>
 
         <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Musteri</p>
+          <p className="text-sm text-slate-500">Toplam Client</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{totalCustomers}</p>
           <p className="mt-3 text-xs text-slate-500">
-            Cari kartlarinizi duzenli tutarak teklif ve fatura sureclerini hizlandirin.
+            Duzenli client kartlari, teklif-fatura-donusturme surecini ciddi sekilde hizlandirir.
           </p>
-          <div className="mt-4 chip">Canli Veri</div>
+          <div className="mt-4 chip">Agency CRM Core</div>
         </div>
       </div>
 
@@ -304,11 +304,11 @@ export default function CustomersPage() {
       <div className="card overflow-x-auto">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Kayitli musteri listesi ({totalCustomers}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)}
+            Kayitli client listesi ({totalCustomers}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)}
           </p>
           <input
             type="text"
-            placeholder="Musteri ara (unvan, telefon, e-posta)"
+            placeholder="Client ara (brand, telefon, e-posta)"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -321,7 +321,7 @@ export default function CustomersPage() {
         <table className="min-w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">
-              <th className="py-2 pr-4">Ad</th>
+              <th className="py-2 pr-4">Client / Brand</th>
               <th className="py-2 pr-4">Telefon</th>
               <th className="py-2 pr-4">E-posta</th>
               <th className="py-2 pr-4">Adres</th>
@@ -358,14 +358,14 @@ export default function CustomersPage() {
             {loading ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={6}>
-                  Musteriler yukleniyor...
+                  Client kayitlari yukleniyor...
                 </td>
               </tr>
             ) : null}
             {!loading && customers.length === 0 ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={6}>
-                  Sonuc bulunamadi.
+                  Bu filtrede client bulunamadi.
                 </td>
               </tr>
             ) : null}

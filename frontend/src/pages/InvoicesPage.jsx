@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import AgencyPresetBar from '../components/AgencyPresetBar';
 import ItemRows from '../components/ItemRows';
 import PageHeader from '../components/PageHeader';
 import { apiRequest, downloadPdf, formatCurrency, formatDate } from '../api';
+import { mergePresetItems } from '../constants/agencyPresets';
 import { useAuth } from '../contexts/AuthContext';
 
 const emptyItem = { name: '', quantity: 1, unitPrice: 0 };
@@ -48,7 +50,7 @@ function paymentStatusLabel(invoice) {
     return 'Gecikmede';
   }
 
-  return 'Beklemede';
+  return 'Takipte';
 }
 
 function paymentStatusClasses(invoice) {
@@ -421,12 +423,12 @@ export default function InvoicesPage() {
 
   function validateItems(items) {
     if (!items.length) {
-      return 'En az bir kalem eklemelisiniz.';
+      return 'En az bir hizmet kalemi eklemelisiniz.';
     }
 
     for (const item of items) {
       if (!item.name) {
-        return 'Tum kalemlerde urun veya hizmet adi zorunludur.';
+        return 'Tum kalemlerde hizmet kalemi adi zorunludur.';
       }
 
       if (item.quantity <= 0) {
@@ -454,6 +456,31 @@ export default function InvoicesPage() {
 
   function addItem() {
     setForm((prev) => ({ ...prev, items: [...prev.items, { ...emptyItem }] }));
+  }
+
+  function applyServicePreset(preset) {
+    if (!preset?.item) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      items: mergePresetItems(prev.items, [preset.item])
+    }));
+    showSuccess(`${preset.label} kalemi eklendi.`);
+  }
+
+  function applyPaymentPlanPreset(preset) {
+    if (!preset?.items?.length) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      dueDate: preset.dueInDays ? addDays(prev.date || today, preset.dueInDays) : prev.dueDate,
+      items: mergePresetItems(prev.items, preset.items)
+    }));
+    showSuccess(`${preset.label} plani uygulandi.`);
   }
 
   function removeItem(index) {
@@ -499,7 +526,7 @@ export default function InvoicesPage() {
       } else {
         await loadInvoices();
       }
-      showSuccess(isEditing ? 'Fatura kaydi guncellendi.' : 'Fatura kaydedildi.');
+      showSuccess(isEditing ? 'Fatura dosyasi guncellendi.' : 'Fatura dosyasi kaydedildi.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -535,7 +562,7 @@ export default function InvoicesPage() {
 
   async function removeInvoice(invoice) {
     const shouldDelete = window.confirm(
-      `${invoice.invoice_number} numarali faturayi silmek istediginize emin misiniz?`
+      `${invoice.invoice_number} numarali fatura dosyasini silmek istediginize emin misiniz?`
     );
     if (!shouldDelete) {
       return;
@@ -555,7 +582,7 @@ export default function InvoicesPage() {
       } else {
         await loadInvoices();
       }
-      showSuccess('Fatura kaydi silindi.');
+      showSuccess('Fatura dosyasi silindi.');
     } catch (deleteError) {
       setError(deleteError.message);
     }
@@ -563,7 +590,7 @@ export default function InvoicesPage() {
 
   async function createFromQuote() {
     if (!fromQuoteId) {
-      setError('Teklif secmelisiniz.');
+      setError('Faturaya cevrilecek teklifi secmelisiniz.');
       return;
     }
 
@@ -585,7 +612,7 @@ export default function InvoicesPage() {
       } else {
         await loadInvoices();
       }
-      showSuccess('Teklif faturaya donusturuldu.');
+      showSuccess('Teklif, fatura dosyasina donusturuldu.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -613,7 +640,7 @@ export default function InvoicesPage() {
         }
       });
       await loadInvoices();
-      showSuccess(status === 'paid' ? 'Fatura tahsil edildi olarak isaretlendi.' : 'Fatura beklemeye alindi.');
+      showSuccess(status === 'paid' ? 'Fatura tahsil edildi olarak isaretlendi.' : 'Fatura takibe geri alindi.');
     } catch (updateError) {
       setError(updateError.message);
     }
@@ -640,7 +667,7 @@ export default function InvoicesPage() {
       showSuccess(
         status === 'paid'
           ? `${selectedInvoiceIds.length} fatura tahsil edildi olarak isaretlendi.`
-          : `${selectedInvoiceIds.length} fatura beklemeye alindi.`
+          : `${selectedInvoiceIds.length} fatura takibe geri alindi.`
       );
     } catch (bulkError) {
       setError(bulkError.message);
@@ -743,14 +770,14 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Faturalar"
-        description="Manuel fatura olusturun veya kayitli teklifleri hizlica faturaya donusturun"
+        title="Fatura ve Tahsilat"
+        description="Tekliften fatura donusumunu, odeme takibini ve client tahsilat hatirlatmalarini tek operasyon panelinden yonetin"
       />
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="card">
-          <h3 className="panel-title">Tekliften Fatura Olustur</h3>
-          <p className="panel-description">Kayitli teklifi secin ve tek adimda faturaya donusturun.</p>
+          <h3 className="panel-title">Tekliften Fatura Dosyasi Uret</h3>
+          <p className="panel-description">Onaylanan teklifi secin ve tek adimda tahsilat akisini baslatin.</p>
           <div className="mt-3 flex flex-col gap-2 md:flex-row">
             <select value={fromQuoteId} onChange={(event) => setFromQuoteId(event.target.value)}>
               <option value="">Teklif secin</option>
@@ -766,26 +793,26 @@ export default function InvoicesPage() {
               onClick={createFromQuote}
               disabled={savingFromQuote}
             >
-              {savingFromQuote ? 'Olusturuluyor...' : 'Faturaya Donustur'}
+              {savingFromQuote ? 'Olusturuluyor...' : 'Fatura Dosyasina Donustur'}
             </button>
           </div>
         </div>
 
         <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Fatura</p>
+          <p className="text-sm text-slate-500">Toplam Fatura Dosyasi</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{totalInvoices}</p>
-          <p className="mt-3 text-sm text-slate-600">Toplam Ciro</p>
+          <p className="mt-3 text-sm text-slate-600">Toplam Kesilen Tutar</p>
           <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(invoicesTotal)}</p>
-          <p className="mt-3 text-sm text-slate-600">Bekleyen Tahsilat</p>
+          <p className="mt-3 text-sm text-slate-600">Acil Tahsilat</p>
           <p className="mt-1 text-lg font-semibold text-amber-700">{formatCurrency(pendingReceivable)}</p>
-          <p className="mt-2 text-xs text-rose-700">Geciken: {formatCurrency(overdueReceivable)}</p>
-          <div className="mt-4 chip">Tahsilat Takibi</div>
+          <p className="mt-2 text-xs text-rose-700">Gecikmeye Dusen: {formatCurrency(overdueReceivable)}</p>
+          <div className="mt-4 chip">Collections Control</div>
         </div>
       </div>
 
       <div className="card">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">Durum:</span>
+          <span className="text-sm font-medium text-slate-600">Tahsilat Durumu:</span>
           {[
             { key: 'all', label: 'Tum Faturalar' },
             { key: 'pending', label: 'Bekleyen' },
@@ -821,7 +848,7 @@ export default function InvoicesPage() {
             onClick={() => bulkUpdatePaymentStatus('pending')}
             disabled={savingBulkStatus || selectedCount === 0}
           >
-            Toplu Beklemeye Al
+            Toplu Takibe Al
           </button>
           {selectedCount > 0 ? (
             <button type="button" className="btn-secondary" onClick={() => setSelectedInvoiceIds([])}>
@@ -834,8 +861,8 @@ export default function InvoicesPage() {
       <div className="card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="panel-title">Reminder Operasyon Paneli</h3>
-            <p className="panel-description">Gonderim sagligi, hata kayitlari ve yeniden deneme islemleri.</p>
+            <h3 className="panel-title">Tahsilat Hatirlatma Akisi</h3>
+            <p className="panel-description">Hatirlatma performansi, teslim durumu ve yeniden deneme kontrolu.</p>
           </div>
           <div className="chip">
             Filtreli Kayit: {reminderOps.filteredCount}
@@ -864,7 +891,7 @@ export default function InvoicesPage() {
             <p className="mt-1 text-lg font-semibold text-indigo-800">%{reminderSummary.failedRate}</p>
           </div>
           <div className="rounded-xl border border-lime-200 bg-lime-50 p-3">
-            <p className="text-xs text-lime-700">Planli Retry</p>
+            <p className="text-xs text-lime-700">Planli Yeniden Deneme</p>
             <p className="mt-1 text-lg font-semibold text-lime-800">{reminderSummary.scheduledRetries}</p>
           </div>
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
@@ -884,13 +911,13 @@ export default function InvoicesPage() {
             </p>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3">
-            <p className="text-xs text-cyan-700">Retry Limiti</p>
+            <p className="text-xs text-cyan-700">Yeniden Deneme Limiti</p>
             <p className="mt-1 text-lg font-semibold text-cyan-800">{reminderPolicy.maxRetryCount}</p>
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">Reminder Durumu:</span>
+          <span className="text-sm font-medium text-slate-600">Hatirlatma Durumu:</span>
           {reminderStatusFilters.map((option) => (
             <button
               key={option.key}
@@ -906,7 +933,7 @@ export default function InvoicesPage() {
             </button>
           ))}
           <span className="ml-auto text-xs text-slate-500">
-            Top Error: {reminderErrorBreakdown[0]?.message || '-'}
+            En Sikisik Hata: {reminderErrorBreakdown[0]?.message || '-'}
           </span>
         </div>
 
@@ -918,7 +945,7 @@ export default function InvoicesPage() {
               </span>
             ))
           ) : (
-            <span className="text-xs text-slate-500">Hata kirilimi icin veri yok.</span>
+            <span className="text-xs text-slate-500">Hata kirilimi icin veri olusmadi.</span>
           )}
         </div>
 
@@ -940,7 +967,7 @@ export default function InvoicesPage() {
               {loadingReminderOps ? (
                 <tr>
                   <td className="py-6 text-center text-slate-500" colSpan={8}>
-                    Reminder operasyon kayitlari yukleniyor...
+                    Hatirlatma operasyon kayitlari yukleniyor...
                   </td>
                 </tr>
               ) : null}
@@ -993,7 +1020,7 @@ export default function InvoicesPage() {
               {!loadingReminderOps && reminderJobs.length === 0 ? (
                 <tr>
                   <td className="py-6 text-center text-slate-500" colSpan={8}>
-                    Reminder kaydi bulunamadi.
+                    Hatirlatma kaydi bulunamadi.
                   </td>
                 </tr>
               ) : null}
@@ -1003,21 +1030,21 @@ export default function InvoicesPage() {
       </div>
 
       <div ref={formCardRef} className="card">
-        <h3 className="panel-title">{editingId ? 'Faturayi Duzenle' : 'Manuel Fatura Olustur'}</h3>
-        <p className="panel-description">Kalemleri doldurun, toplam tutar otomatik hesaplanir.</p>
+        <h3 className="panel-title">{editingId ? 'Fatura Dosyasini Duzenle' : 'Manuel Fatura Dosyasi Olustur'}</h3>
+        <p className="panel-description">Ajans hizmet kalemlerini, vade planini ve tahsilat akis detaylarini buradan girin.</p>
 
         <form className="mt-4 space-y-4" onSubmit={handleManualSubmit}>
           {loadingEdit ? <p className="text-sm text-slate-500">Fatura bilgisi yukleniyor...</p> : null}
 
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <label className="mb-1 block text-sm text-slate-600">Musteri</label>
+              <label className="mb-1 block text-sm text-slate-600">Client / Brand</label>
               <select
                 value={form.customerId}
                 onChange={(event) => setForm((prev) => ({ ...prev, customerId: event.target.value }))}
                 required
               >
-                <option value="">Musteri secin</option>
+                <option value="">Client secin</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
@@ -1047,6 +1074,11 @@ export default function InvoicesPage() {
             </div>
           </div>
 
+          <AgencyPresetBar
+            onApplyServicePreset={applyServicePreset}
+            onApplyPaymentPlanPreset={applyPaymentPlanPreset}
+          />
+
           <ItemRows items={form.items} onChange={updateItem} onAdd={addItem} onRemove={removeItem} />
 
           <div className="flex items-center justify-between">
@@ -1060,7 +1092,7 @@ export default function InvoicesPage() {
                 </button>
               ) : null}
               <button type="submit" className="btn-primary" disabled={savingManual}>
-                {savingManual ? 'Kaydediliyor...' : editingId ? 'Guncelle' : 'Fatura Kaydet'}
+                {savingManual ? 'Kaydediliyor...' : editingId ? 'Guncelle' : 'Faturayi Kaydet'}
               </button>
             </div>
           </div>
@@ -1073,12 +1105,12 @@ export default function InvoicesPage() {
       <div className="card overflow-x-auto">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Kayitli fatura listesi ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
+            Fatura dosyalari ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
             Sayfa Toplami: {formatCurrency(invoicesTotal)}
           </p>
           <input
             type="text"
-            placeholder="Fatura ara (no, musteri, tarih)"
+            placeholder="Fatura ara (no, client, tarih)"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -1095,7 +1127,7 @@ export default function InvoicesPage() {
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
               </th>
               <th className="py-2 pr-4">No</th>
-              <th className="py-2 pr-4">Musteri</th>
+              <th className="py-2 pr-4">Client</th>
               <th className="py-2 pr-4">Tarih</th>
               <th className="py-2 pr-4">Vade</th>
               <th className="py-2 pr-4">Durum</th>
@@ -1170,7 +1202,7 @@ export default function InvoicesPage() {
                         )
                       }
                     >
-                      {(invoice.payment_status || 'pending') === 'paid' ? 'Beklemeye Al' : 'Tahsil Edildi'}
+                      {(invoice.payment_status || 'pending') === 'paid' ? 'Takibe Al' : 'Tahsil Edildi'}
                     </button>
                     <button
                       type="button"
@@ -1186,14 +1218,14 @@ export default function InvoicesPage() {
             {loading ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={8}>
-                  Fatura kayitlari yukleniyor...
+                  Fatura dosyalari yukleniyor...
                 </td>
               </tr>
             ) : null}
             {!loading && invoices.length === 0 ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={8}>
-                  Sonuc bulunamadi.
+                  Bu filtrede fatura bulunamadi.
                 </td>
               </tr>
             ) : null}

@@ -327,7 +327,7 @@ describe('InvoicesPage', () => {
 
     const selects = screen.getAllByRole('combobox');
     await user.selectOptions(selects[0], '7');
-    await user.click(screen.getByRole('button', { name: 'Faturaya Donustur' }));
+    await user.click(screen.getByRole('button', { name: 'Fatura Dosyasina Donustur' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -351,9 +351,9 @@ describe('InvoicesPage', () => {
     );
 
     await screen.findByText('TKL-7 - Acar Insaat');
-    await user.click(screen.getByRole('button', { name: 'Faturaya Donustur' }));
+    await user.click(screen.getByRole('button', { name: 'Fatura Dosyasina Donustur' }));
 
-    expect(await screen.findByText('Teklif secmelisiniz.')).toBeInTheDocument();
+    expect(await screen.findByText('Faturaya cevrilecek teklifi secmelisiniz.')).toBeInTheDocument();
     expect(apiRequestMock).not.toHaveBeenCalledWith(
       '/invoices',
       expect.objectContaining({ method: 'POST', body: expect.objectContaining({ quoteId: expect.any(Number) }) })
@@ -374,7 +374,7 @@ describe('InvoicesPage', () => {
     const selects = screen.getAllByRole('combobox');
     await user.selectOptions(selects[1], '1');
 
-    const nameInput = screen.getByPlaceholderText('Urun veya hizmet adi');
+    const nameInput = screen.getByPlaceholderText('Hizmet kalemi adi');
     const quantityInput = screen.getByPlaceholderText('Miktar');
     const unitPriceInput = screen.getByPlaceholderText('Birim fiyat');
 
@@ -385,7 +385,7 @@ describe('InvoicesPage', () => {
     await user.clear(unitPriceInput);
     await user.type(unitPriceInput, '3000');
 
-    await user.click(screen.getByRole('button', { name: 'Fatura Kaydet' }));
+    await user.click(screen.getByRole('button', { name: 'Faturayi Kaydet' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -430,8 +430,8 @@ describe('InvoicesPage', () => {
     await user.click(within(row).getByRole('button', { name: 'Duzenle' }));
 
     await screen.findByRole('button', { name: 'Guncelle' });
-    await user.clear(screen.getByPlaceholderText('Urun veya hizmet adi'));
-    await user.type(screen.getByPlaceholderText('Urun veya hizmet adi'), 'Guncel Hizmet');
+    await user.clear(screen.getByPlaceholderText('Hizmet kalemi adi'));
+    await user.type(screen.getByPlaceholderText('Hizmet kalemi adi'), 'Guncel Hizmet');
     await user.click(screen.getByRole('button', { name: 'Guncelle' }));
 
     await waitFor(() => {
@@ -458,7 +458,7 @@ describe('InvoicesPage', () => {
       );
     });
 
-    expect(await screen.findByText('Fatura kaydi silindi.')).toBeInTheDocument();
+    expect(await screen.findByText('Fatura dosyasi silindi.')).toBeInTheDocument();
     confirmMock.mockRestore();
   });
 
@@ -567,7 +567,7 @@ describe('InvoicesPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Reminder Operasyon Paneli')).toBeInTheDocument();
+    expect(await screen.findByText('Tahsilat Hatirlatma Akisi')).toBeInTheDocument();
     expect(await screen.findByText('SMTP timeout')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Yeniden Dene' }));

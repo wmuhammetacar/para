@@ -158,11 +158,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     render(<DashboardPage />);
 
-    expect(await screen.findByText('Toplam Musteri')).toBeInTheDocument();
-    expect(screen.getByText('Son Islemler')).toBeInTheDocument();
-    expect(screen.getByText('Donusum Sagligi')).toBeInTheDocument();
-    expect(screen.getByText('6 Aylik Trend')).toBeInTheDocument();
-    expect(screen.getByText('Fatura Olusturuldu')).toBeInTheDocument();
+    expect(await screen.findByText('Toplam Client')).toBeInTheDocument();
+    expect(screen.getByText('Son Operasyon Hareketleri')).toBeInTheDocument();
+    expect(screen.getByText('Tekliften Tahsilata Donusum')).toBeInTheDocument();
+    expect(screen.getByText('6 Aylik Operasyon Trendi')).toBeInTheDocument();
+    expect(screen.getByText('Tahsilat Faturasi Olusturuldu')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/stats?period=all', {
@@ -192,6 +192,6 @@ describe('DashboardPage', () => {
       });
     });
 
-    expect(await screen.findByText('Fatura Odeme Durumu Guncellendi')).toBeInTheDocument();
+    expect(await screen.findByText('Tahsilat Durumu Guncellendi')).toBeInTheDocument();
   });
 });

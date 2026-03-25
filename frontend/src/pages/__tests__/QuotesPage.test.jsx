@@ -157,7 +157,7 @@ describe('QuotesPage', () => {
 
     await user.selectOptions(screen.getByRole('combobox'), '1');
 
-    const nameInput = screen.getByPlaceholderText('Urun veya hizmet adi');
+    const nameInput = screen.getByPlaceholderText('Hizmet kalemi adi');
     const quantityInput = screen.getByPlaceholderText('Miktar');
     const unitPriceInput = screen.getByPlaceholderText('Birim fiyat');
 
@@ -168,7 +168,7 @@ describe('QuotesPage', () => {
     await user.clear(unitPriceInput);
     await user.type(unitPriceInput, '1500');
 
-    await user.click(screen.getByRole('button', { name: 'Teklif Kaydet' }));
+    await user.click(screen.getByRole('button', { name: 'Teklifi Kaydet' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -198,9 +198,9 @@ describe('QuotesPage', () => {
 
     await screen.findByText('Acar Insaat');
     await user.selectOptions(screen.getByRole('combobox'), '1');
-    await user.click(screen.getByRole('button', { name: 'Teklif Kaydet' }));
+    await user.click(screen.getByRole('button', { name: 'Teklifi Kaydet' }));
 
-    expect(await screen.findByText('Tum kalemlerde urun veya hizmet adi zorunludur.')).toBeInTheDocument();
+    expect(await screen.findByText('Tum kalemlerde hizmet kalemi adi zorunludur.')).toBeInTheDocument();
     expect(apiRequestMock).not.toHaveBeenCalledWith(
       '/quotes',
       expect.objectContaining({ method: 'POST' })
@@ -230,8 +230,8 @@ describe('QuotesPage', () => {
     await user.click(within(row).getByRole('button', { name: 'Duzenle' }));
 
     await screen.findByRole('button', { name: 'Guncelle' });
-    await user.clear(screen.getByPlaceholderText('Urun veya hizmet adi'));
-    await user.type(screen.getByPlaceholderText('Urun veya hizmet adi'), 'Guncel Kalem');
+    await user.clear(screen.getByPlaceholderText('Hizmet kalemi adi'));
+    await user.type(screen.getByPlaceholderText('Hizmet kalemi adi'), 'Guncel Kalem');
     await user.click(screen.getByRole('button', { name: 'Guncelle' }));
 
     await waitFor(() => {
@@ -258,7 +258,7 @@ describe('QuotesPage', () => {
       );
     });
 
-    expect(await screen.findByText('Teklif kaydi silindi.')).toBeInTheDocument();
+    expect(await screen.findByText('Teklif dosyasi silindi.')).toBeInTheDocument();
     confirmMock.mockRestore();
   });
 });

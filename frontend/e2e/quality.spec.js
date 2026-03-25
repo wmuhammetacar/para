@@ -11,20 +11,20 @@ async function login(page) {
 test('dashboard period filter updates active labels', async ({ page }) => {
   await login(page);
 
-  await expect(page.getByText('Aktif Donem: Tum Zamanlar')).toBeVisible();
+  await expect(page.getByText('Secili Donem: Tum Zamanlar')).toBeVisible();
 
   await page.getByRole('button', { name: '7 Gun' }).click();
-  await expect(page.getByText('Aktif Donem: Son 7 Gun')).toBeVisible();
+  await expect(page.getByText('Secili Donem: Son 7 Gun')).toBeVisible();
 
   await page.getByRole('button', { name: 'Bugun' }).click();
-  await expect(page.getByText('Aktif Donem: Bugun')).toBeVisible();
+  await expect(page.getByText('Secili Donem: Bugun')).toBeVisible();
 });
 
 test('quote and invoice list PDF actions show success feedback', async ({ page }) => {
   await login(page);
 
-  await page.getByRole('link', { name: 'Teklifler' }).click();
-  await expect(page.getByRole('heading', { name: 'Teklifler' })).toBeVisible();
+  await page.getByRole('link', { name: 'Teklif Akisi' }).click();
+  await expect(page.getByRole('heading', { name: 'Teklif Akisi' })).toBeVisible();
 
   const quotePdfButton = page.locator('table tbody tr').filter({ hasText: 'TKL-' }).first().getByRole('button', {
     name: 'PDF'
@@ -33,8 +33,8 @@ test('quote and invoice list PDF actions show success feedback', async ({ page }
   await quotePdfButton.click();
   await expect(page.getByText(/PDF indirildi:/)).toBeVisible();
 
-  await page.getByRole('link', { name: 'Faturalar' }).click();
-  await expect(page.getByRole('heading', { name: 'Faturalar' })).toBeVisible();
+  await page.getByRole('link', { name: 'Fatura & Tahsilat' }).click();
+  await expect(page.getByRole('heading', { name: 'Fatura ve Tahsilat' })).toBeVisible();
 
   const invoicePdfButton = page
     .locator('table tbody tr')

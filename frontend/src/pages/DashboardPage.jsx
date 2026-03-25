@@ -4,9 +4,9 @@ import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 
 const statsConfig = [
-  { key: 'totalCustomers', label: 'Toplam Musteri', note: 'Kayitli aktif cari hesaplar' },
-  { key: 'totalQuotes', label: 'Toplam Teklif', note: 'Olusturulan teklif kayitlari' },
-  { key: 'totalInvoices', label: 'Toplam Fatura', note: 'Olusturulan fatura kayitlari' }
+  { key: 'totalCustomers', label: 'Toplam Client', note: 'Ajans portfoyundeki aktif client hesaplari' },
+  { key: 'totalQuotes', label: 'Aktif Teklifler', note: 'Client onayi ve geri donus bekleyen teklifler' },
+  { key: 'pendingInvoiceCount', label: 'Aktif Faturalar', note: 'Tahsilati tamamlanmamis fatura adedi' }
 ];
 
 const periodOptions = [
@@ -20,18 +20,18 @@ const activityEventLabelMap = {
   AUTH_REGISTER_SUCCESS: 'Kayit Basarili',
   AUTH_LOGIN_SUCCESS: 'Giris Basarili',
   AUTH_LOGIN_FAILED: 'Giris Basarisiz',
-  CUSTOMER_CREATED: 'Musteri Olusturuldu',
-  CUSTOMER_UPDATED: 'Musteri Guncellendi',
-  CUSTOMER_DELETED: 'Musteri Silindi',
-  QUOTE_CREATED: 'Teklif Olusturuldu',
-  QUOTE_UPDATED: 'Teklif Guncellendi',
-  QUOTE_DELETED: 'Teklif Silindi',
-  INVOICE_CREATED: 'Fatura Olusturuldu',
-  INVOICE_UPDATED: 'Fatura Guncellendi',
-  INVOICE_DELETED: 'Fatura Silindi',
-  INVOICE_PAYMENT_UPDATED: 'Fatura Odeme Durumu Guncellendi',
-  INVOICE_BULK_PAYMENT_UPDATED: 'Toplu Odeme Durumu Guncellendi',
-  INVOICE_REMINDER_CREATED: 'Tahsilat Hatirlatmasi Olusturuldu'
+  CUSTOMER_CREATED: 'Client Eklendi',
+  CUSTOMER_UPDATED: 'Client Guncellendi',
+  CUSTOMER_DELETED: 'Client Arsivlendi',
+  QUOTE_CREATED: 'Teklif Dosyasi Olusturuldu',
+  QUOTE_UPDATED: 'Teklif Dosyasi Guncellendi',
+  QUOTE_DELETED: 'Teklif Dosyasi Silindi',
+  INVOICE_CREATED: 'Tahsilat Faturasi Olusturuldu',
+  INVOICE_UPDATED: 'Tahsilat Faturasi Guncellendi',
+  INVOICE_DELETED: 'Tahsilat Faturasi Silindi',
+  INVOICE_PAYMENT_UPDATED: 'Tahsilat Durumu Guncellendi',
+  INVOICE_BULK_PAYMENT_UPDATED: 'Toplu Tahsilat Durumu Guncellendi',
+  INVOICE_REMINDER_CREATED: 'Tahsilat Hatirlatmasi Gonderildi'
 };
 
 function isoDateOffset(days) {
@@ -215,13 +215,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Genel Bakis"
-        description="Musteri, teklif, fatura ve ciro metriklerini tek ekranda anlik takip edin"
+        title="Ajans Operasyon Paneli"
+        description="Client, teklif, fatura ve tahsilat akisinda bugun aksiyon gerektiren alanlari tek ekranda izleyin"
       />
 
       <div className="card">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="chip bg-slate-100 text-slate-700">Filtre</div>
+          <div className="chip bg-slate-100 text-slate-700">Operasyon Donemi</div>
           {periodOptions.map((option) => (
             <button
               key={option.value}
@@ -236,9 +236,9 @@ export default function DashboardPage() {
               {option.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-500">Aktif Donem: {stats.periodLabel || 'Tum Zamanlar'}</span>
+          <span className="ml-auto text-xs text-slate-500">Secili Donem: {stats.periodLabel || 'Tum Zamanlar'}</span>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Donem Araligi: {periodRangeText}</p>
+        <p className="mt-2 text-xs text-slate-500">Tarih Araligi: {periodRangeText}</p>
       </div>
 
       {error ? <div className="status-error">{error}</div> : null}
@@ -266,28 +266,33 @@ export default function DashboardPage() {
           ))}
 
           <div className="card bg-gradient-to-br from-brand-600 via-brand-600 to-brand-700 text-white">
-            <p className="text-sm text-brand-100">Toplam Ciro</p>
-            <p className="mt-2 text-3xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
-            <p className="mt-3 text-xs text-brand-100">Son guncelleme: {updatedAt}</p>
+            <p className="text-sm text-brand-100">Beklenen Gelir</p>
+            <p className="mt-2 text-3xl font-bold">{formatCurrency(stats.pendingReceivable)}</p>
+            <p className="mt-3 text-xs text-brand-100">Acil faturalardan kalan tahsilat | Guncelleme: {updatedAt}</p>
           </div>
         </div>
       ) : null}
 
       {!loading ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="stat-card border-l-4 border-l-amber-500">
-            <p className="text-sm text-slate-500">Bekleyen Tahsilat</p>
+            <p className="text-sm text-slate-500">Takipteki Tahsilat</p>
             <p className="mt-2 text-3xl font-bold text-amber-700">{formatCurrency(stats.pendingReceivable)}</p>
             <p className="mt-3 text-xs text-slate-500">
-              Odeme bekleyen toplam {stats.pendingInvoiceCount} fatura
+              Odeme bekleyen toplam {stats.pendingInvoiceCount} aktif fatura
             </p>
           </div>
           <div className="stat-card border-l-4 border-l-rose-500">
-            <p className="text-sm text-slate-500">Geciken Tahsilat</p>
+            <p className="text-sm text-slate-500">Gecikmeye Dusen Tahsilat</p>
             <p className="mt-2 text-3xl font-bold text-rose-700">{formatCurrency(stats.overdueReceivable)}</p>
             <p className="mt-3 text-xs text-slate-500">
               Vadesi gecmis toplam {stats.overdueInvoiceCount} fatura
             </p>
+          </div>
+          <div className="stat-card border-l-4 border-l-sky-500">
+            <p className="text-sm text-slate-500">Toplam Kesilen Ciro</p>
+            <p className="mt-2 text-3xl font-bold text-sky-700">{formatCurrency(stats.totalRevenue)}</p>
+            <p className="mt-3 text-xs text-slate-500">Tum donem boyunca olusan fatura toplami</p>
           </div>
         </div>
       ) : null}
@@ -295,9 +300,9 @@ export default function DashboardPage() {
       {!loading ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Donusum Sagligi</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Tekliften Tahsilata Donusum</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Son {growth.periodDays || 0} gunluk quote-invoice-tahsilat zinciri
+              Son {growth.periodDays || 0} gunluk teklif-fatura-tahsilat akisi
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -318,15 +323,15 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">Growth Health Score</p>
+              <p className="text-xs text-slate-500">Operasyon Saglik Skoru</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">{growth.health?.score ?? 0}</p>
               <p className="mt-2 text-xs text-slate-500">{growth.health?.insight || '-'}</p>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Gelir Kompozisyonu</h3>
-            <p className="mt-1 text-sm text-slate-600">Operasyonel tahsilat gorunumu</p>
+            <h3 className="text-lg font-semibold text-slate-900">Gelir ve Tahsilat Kompozisyonu</h3>
+            <p className="mt-1 text-sm text-slate-600">Ajans owner icin tahsilat baskisi gorunumu</p>
 
             <div className="mt-4 space-y-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -336,7 +341,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="rounded-xl border border-slate-200 bg-emerald-50 p-3">
-                <p className="text-xs text-emerald-700">Tahsil Edilen</p>
+                <p className="text-xs text-emerald-700">Tahsil Edilen Gelir</p>
                 <p className="mt-1 text-xl font-bold text-emerald-700">
                   {formatCurrency(growth.revenue?.collected || 0)}
                 </p>
@@ -361,7 +366,7 @@ export default function DashboardPage() {
       {!loading ? (
         <div className="card overflow-x-auto">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-900">6 Aylik Trend</h3>
+            <h3 className="text-lg font-semibold text-slate-900">6 Aylik Operasyon Trendi</h3>
             <p className="text-xs text-slate-500">Fatura olusumu ve tahsilat ritmi</p>
           </div>
 
@@ -388,7 +393,7 @@ export default function DashboardPage() {
               {!growth.trend?.length ? (
                 <tr>
                   <td className="py-8 text-center text-slate-500" colSpan={5}>
-                    Trend verisi bulunamadi.
+                    Bu donem icin trend verisi olusmadi.
                   </td>
                 </tr>
               ) : null}
@@ -399,8 +404,8 @@ export default function DashboardPage() {
 
       {!loading ? (
         <div className="card">
-          <h3 className="text-lg font-semibold text-slate-900">Gecikme Yaslandirma</h3>
-          <p className="mt-1 text-sm text-slate-600">Gecikme suresine gore tahsilat riski dagilimi</p>
+          <h3 className="text-lg font-semibold text-slate-900">Gecikme Yaslandirmasi</h3>
+          <p className="mt-1 text-sm text-slate-600">Hangi alacaklar bugun daha fazla aksiyon istiyor?</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
               <p className="text-xs font-semibold text-amber-700">0-7 Gun</p>
@@ -427,8 +432,8 @@ export default function DashboardPage() {
       {!loading ? (
         <div className="card overflow-x-auto">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-900">Son Islemler</h3>
-            <p className="text-xs text-slate-500">Audit kayitlari (son 8)</p>
+            <h3 className="text-lg font-semibold text-slate-900">Son Operasyon Hareketleri</h3>
+            <p className="text-xs text-slate-500">Aksiyon kayitlari (son 8)</p>
           </div>
 
           <table className="mt-4 min-w-full text-left text-sm">
@@ -452,7 +457,7 @@ export default function DashboardPage() {
               {!activities.length ? (
                 <tr>
                   <td className="py-8 text-center text-slate-500" colSpan={4}>
-                    Bu donem icin audit kaydi bulunamadi.
+                    Bu donem icin operasyon kaydi bulunamadi.
                   </td>
                 </tr>
               ) : null}

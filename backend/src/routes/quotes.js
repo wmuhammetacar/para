@@ -309,7 +309,9 @@ router.get('/:id/pdf', async (req, res, next) => {
         address: quote.customer_address
       },
       items: quote.items,
-      total: quote.total
+      total: quote.total,
+      projectSummary: quote.items?.map((item) => item.name).filter(Boolean).slice(0, 3).join(', ') || '-',
+      paymentTerms: 'Onaydan sonra faturalandirma ve tahsilat takvimi baslatilir.'
     });
   } catch (error) {
     next(error);

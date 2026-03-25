@@ -1,15 +1,16 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const navItems = [
-  { to: '/dashboard', label: 'Genel Bakis', hint: 'Performans ve ciro ozeti' },
-  { to: '/growth', label: 'Growth', hint: 'Donusum ve retention analizi' },
-  { to: '/pilot-readiness', label: 'Pilot', hint: 'Canliya hazirlik kontrolu' },
-  { to: '/onboarding', label: 'Onboarding', hint: 'Ilk 10 dakika aktivasyon' },
-  { to: '/plans', label: 'Paketler', hint: 'Plan ve kullanim limitleri' },
-  { to: '/customers', label: 'Musteriler', hint: 'Cari kayit yonetimi' },
-  { to: '/quotes', label: 'Teklifler', hint: 'Teklif olusturma ve takip' },
-  { to: '/invoices', label: 'Faturalar', hint: 'Fatura kayit yonetimi' }
+const primaryNavItems = [
+  { to: '/dashboard', label: 'Ajans Paneli', hint: 'Gunluk operasyon ve tahsilat takibi' },
+  { to: '/customers', label: 'Clientlar', hint: 'Client / brand hesaplari' },
+  { to: '/quotes', label: 'Teklif Akisi', hint: 'Proje tekliflerini yonetin' },
+  { to: '/invoices', label: 'Fatura & Tahsilat', hint: 'Tahsilat operasyonunu yonetin' }
+];
+
+const secondaryNavItems = [
+  { to: '/onboarding', label: 'Kurulum', hint: 'Hesap aktivasyonu' },
+  { to: '/plans', label: 'Abonelik', hint: 'Plan ve kullanim limiti' }
 ];
 
 export default function AppLayout() {
@@ -28,13 +29,13 @@ export default function AppLayout() {
           <div className="flex items-center justify-between lg:block">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">Teklifim</h1>
-              <p className="mt-1 text-xs text-slate-300">Teklif ve Fatura Yonetim Platformu</p>
+              <p className="mt-1 text-xs text-slate-300">Agency Operations Platform</p>
             </div>
-            <span className="chip bg-brand-100 text-brand-700 lg:mt-4">Surum 1.0</span>
+            <span className="chip bg-brand-100 text-brand-700 lg:mt-4">Agency Edition</span>
           </div>
 
           <nav className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:mt-8 lg:grid-cols-1">
-            {navItems.map((item) => (
+            {primaryNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -51,6 +52,28 @@ export default function AppLayout() {
               </NavLink>
             ))}
           </nav>
+
+          <div className="mt-4 border-t border-slate-700/80 pt-4">
+            <p className="px-1 text-[11px] uppercase tracking-wide text-slate-400">Platform</p>
+            <nav className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1">
+              {secondaryNavItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `nav-link rounded-xl px-3 py-2.5 ${
+                      isActive
+                        ? 'nav-link-active bg-brand-500 text-white shadow-md shadow-brand-900/30'
+                        : 'nav-link-idle bg-slate-800/80 text-slate-100 hover:bg-slate-700'
+                    }`
+                  }
+                >
+                  <p className="text-sm font-semibold">{item.label}</p>
+                  <p className="hidden text-xs text-slate-300/90 lg:block">{item.hint}</p>
+                </NavLink>
+              ))}
+            </nav>
+          </div>
 
           <div className="mt-6 rounded-xl border border-slate-700/90 bg-slate-900/60 p-3 text-xs text-slate-300 lg:mt-10">
             <p className="font-semibold text-white">{user?.companyName || 'Teklifim'}</p>
@@ -72,11 +95,11 @@ export default function AppLayout() {
           <header className="card mb-6 fade-in bg-white/85 backdrop-blur-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
-                <p className="text-sm text-slate-500">Operasyon Merkezi</p>
+                <p className="text-sm text-slate-500">Agency Operations Hub</p>
                 <p className="text-lg font-semibold text-slate-900">{user?.companyName || 'Teklifim'}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="chip">Canli Panel</span>
+                <span className="chip">Collections Ready</span>
                 <div className="chip self-start sm:self-auto">{currentDate}</div>
               </div>
             </div>

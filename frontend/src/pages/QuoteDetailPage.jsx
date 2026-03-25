@@ -74,8 +74,8 @@ export default function QuoteDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teklif Detayi"
-        description="Teklif kalemleri, musteri bilgileri ve PDF islemleri"
+        title="Teklif Dosyasi"
+        description="Client bilgileri, hizmet kalemleri ve teklif PDF ciktilari"
         actions={
           <>
             <Link to="/quotes" className="btn-secondary">
@@ -108,7 +108,7 @@ export default function QuoteDetailPage() {
         <>
           <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
             <div className="card">
-              <h3 className="panel-title">Teklif Bilgisi</h3>
+              <h3 className="panel-title">Teklif Ozet Bilgisi</h3>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-slate-500">Teklif No:</span>{' '}
@@ -119,7 +119,7 @@ export default function QuoteDetailPage() {
                   <span className="font-medium text-slate-800">{formatDate(quote.date)}</span>
                 </p>
                 <p>
-                  <span className="text-slate-500">Musteri:</span>{' '}
+                  <span className="text-slate-500">Client / Brand:</span>{' '}
                   <span className="font-medium text-slate-800">{quote.customer_name || '-'}</span>
                 </p>
                 <p>
@@ -138,7 +138,7 @@ export default function QuoteDetailPage() {
             </div>
 
             <div className="stat-card">
-              <p className="text-sm text-slate-500">Kalem Sayisi</p>
+              <p className="text-sm text-slate-500">Hizmet Kalemi</p>
               <p className="mt-1 text-3xl font-bold text-slate-900">{itemCount}</p>
               <p className="mt-4 text-sm text-slate-500">Teklif Toplami</p>
               <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(quote.total)}</p>
@@ -146,7 +146,7 @@ export default function QuoteDetailPage() {
           </div>
 
           <div className="card overflow-x-auto">
-            <h3 className="text-lg font-semibold text-slate-900">Kalemler</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Hizmet Kalemleri</h3>
             <table className="mt-4 min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
@@ -168,7 +168,7 @@ export default function QuoteDetailPage() {
                 {!quote.items?.length ? (
                   <tr>
                     <td className="py-8 text-center text-slate-500" colSpan={4}>
-                      Kalem kaydi bulunamadi.
+                      Hizmet kalemi bulunamadi.
                     </td>
                   </tr>
                 ) : null}

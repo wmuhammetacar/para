@@ -4,7 +4,7 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
   return (
     <div className="space-y-3">
       <div className="hidden grid-cols-[1.7fr_0.7fr_0.9fr_0.9fr_auto] gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid">
-        <span>Urun/Hizmet</span>
+        <span>Hizmet Kalemi</span>
         <span>Miktar</span>
         <span>Birim Fiyat</span>
         <span>Tutar</span>
@@ -21,7 +21,7 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
           >
             <input
               type="text"
-              placeholder="Urun veya hizmet adi"
+              placeholder="Hizmet kalemi adi"
               value={item.name}
               onChange={(event) => onChange(index, 'name', event.target.value)}
             />
@@ -57,7 +57,7 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
       })}
 
       <button type="button" onClick={onAdd} className="btn-secondary">
-        + Kalem Ekle
+        + Hizmet Kalemi Ekle
       </button>
     </div>
   );

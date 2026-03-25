@@ -1139,7 +1139,9 @@ router.get('/:id/pdf', async (req, res, next) => {
         address: invoice.customer_address
       },
       items: invoice.items,
-      total: invoice.total
+      total: invoice.total,
+      projectSummary: invoice.items?.map((item) => item.name).filter(Boolean).slice(0, 3).join(', ') || '-',
+      paymentTerms: `Odeme vadesi ${invoice.due_date || invoice.date}. Odeme referansinda ${invoice.invoice_number} belirtin.`
     });
   } catch (error) {
     next(error);

@@ -35,7 +35,7 @@ function paymentStatusLabel(invoice) {
     return 'Gecikmede';
   }
 
-  return 'Beklemede';
+  return 'Takipte';
 }
 
 function reminderChannelLabel(channel) {
@@ -170,7 +170,7 @@ export default function InvoiceDetailPage() {
         }
       });
       setInvoice(updated);
-      showSuccess(status === 'paid' ? 'Fatura tahsil edildi olarak isaretlendi.' : 'Fatura beklemeye alindi.');
+      showSuccess(status === 'paid' ? 'Fatura tahsil edildi olarak isaretlendi.' : 'Fatura takibe geri alindi.');
     } catch (updateError) {
       setError(updateError.message);
     }
@@ -223,8 +223,8 @@ export default function InvoiceDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fatura Detayi"
-        description="Fatura icerigi, kalem listesi ve PDF islemleri"
+        title="Fatura Dosyasi"
+        description="Tahsilat durumu, client bilgileri ve fatura PDF ciktilari"
         actions={
           <>
             <Link to="/invoices" className="btn-secondary">
@@ -267,7 +267,7 @@ export default function InvoiceDetailPage() {
                   handlePaymentStatus((invoice.payment_status || 'pending') === 'paid' ? 'pending' : 'paid')
                 }
               >
-                {(invoice.payment_status || 'pending') === 'paid' ? 'Beklemeye Al' : 'Tahsil Edildi'}
+                {(invoice.payment_status || 'pending') === 'paid' ? 'Takibe Al' : 'Tahsil Edildi'}
               </button>
             ) : null}
             <button type="button" className="btn-primary" onClick={handlePdfExport} disabled={!invoice}>
@@ -292,7 +292,7 @@ export default function InvoiceDetailPage() {
         <>
           <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
             <div className="card">
-              <h3 className="panel-title">Fatura Bilgisi</h3>
+              <h3 className="panel-title">Fatura Ozet Bilgisi</h3>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-slate-500">Fatura No:</span>{' '}
@@ -307,7 +307,7 @@ export default function InvoiceDetailPage() {
                   <span className="font-medium text-slate-800">{formatDate(invoice.due_date || invoice.date)}</span>
                 </p>
                 <p>
-                  <span className="text-slate-500">Musteri:</span>{' '}
+                  <span className="text-slate-500">Client / Brand:</span>{' '}
                   <span className="font-medium text-slate-800">{invoice.customer_name || '-'}</span>
                 </p>
                 <p>
@@ -344,7 +344,7 @@ export default function InvoiceDetailPage() {
             </div>
 
             <div className="stat-card">
-              <p className="text-sm text-slate-500">Kalem Sayisi</p>
+              <p className="text-sm text-slate-500">Hizmet Kalemi</p>
               <p className="mt-1 text-3xl font-bold text-slate-900">{itemCount}</p>
               <p className="mt-4 text-sm text-slate-500">Fatura Toplami</p>
               <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(invoice.total)}</p>
@@ -364,7 +364,7 @@ export default function InvoiceDetailPage() {
           </div>
 
           <div className="card overflow-x-auto">
-            <h3 className="text-lg font-semibold text-slate-900">Kalemler</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Hizmet Kalemleri</h3>
             <table className="mt-4 min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
@@ -386,7 +386,7 @@ export default function InvoiceDetailPage() {
                 {!invoice.items?.length ? (
                   <tr>
                     <td className="py-8 text-center text-slate-500" colSpan={4}>
-                      Kalem kaydi bulunamadi.
+                      Hizmet kalemi bulunamadi.
                     </td>
                   </tr>
                 ) : null}
@@ -396,7 +396,7 @@ export default function InvoiceDetailPage() {
 
           <div className="card overflow-x-auto">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-lg font-semibold text-slate-900">Hatirlatma Gecmisi</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Tahsilat Hatirlatma Gecmisi</h3>
               {loadingReminders ? <p className="text-xs text-slate-500">Guncelleniyor...</p> : null}
             </div>
             <table className="mt-4 min-w-full text-left text-sm">

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import AgencyPresetBar from '../components/AgencyPresetBar';
 import ItemRows from '../components/ItemRows';
 import PageHeader from '../components/PageHeader';
 import { apiRequest, downloadPdf, formatCurrency, formatDate } from '../api';
+import { mergePresetItems } from '../constants/agencyPresets';
 import { useAuth } from '../contexts/AuthContext';
 
 const emptyItem = { name: '', quantity: 1, unitPrice: 0 };
@@ -184,12 +186,12 @@ export default function QuotesPage() {
 
   function validateItems(items) {
     if (!items.length) {
-      return 'En az bir kalem eklemelisiniz.';
+      return 'En az bir hizmet kalemi eklemelisiniz.';
     }
 
     for (const item of items) {
       if (!item.name) {
-        return 'Tum kalemlerde urun veya hizmet adi zorunludur.';
+        return 'Tum kalemlerde hizmet kalemi adi zorunludur.';
       }
 
       if (item.quantity <= 0) {
@@ -217,6 +219,30 @@ export default function QuotesPage() {
 
   function addItem() {
     setForm((prev) => ({ ...prev, items: [...prev.items, { ...emptyItem }] }));
+  }
+
+  function applyServicePreset(preset) {
+    if (!preset?.item) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      items: mergePresetItems(prev.items, [preset.item])
+    }));
+    showSuccess(`${preset.label} kalemi eklendi.`);
+  }
+
+  function applyPaymentPlanPreset(preset) {
+    if (!preset?.items?.length) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      items: mergePresetItems(prev.items, preset.items)
+    }));
+    showSuccess(`${preset.label} plani kalemlere eklendi.`);
   }
 
   function removeItem(index) {
@@ -261,7 +287,7 @@ export default function QuotesPage() {
       } else {
         await loadQuotes();
       }
-      showSuccess(isEditing ? 'Teklif kaydi guncellendi.' : 'Teklif kaydedildi.');
+      showSuccess(isEditing ? 'Teklif dosyasi guncellendi.' : 'Teklif dosyasi kaydedildi.');
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -296,7 +322,7 @@ export default function QuotesPage() {
 
   async function removeQuote(quote) {
     const shouldDelete = window.confirm(
-      `${quote.quote_number} numarali teklifi silmek istediginize emin misiniz?`
+      `${quote.quote_number} numarali teklif dosyasini silmek istediginize emin misiniz?`
     );
     if (!shouldDelete) {
       return;
@@ -316,7 +342,7 @@ export default function QuotesPage() {
       } else {
         await loadQuotes();
       }
-      showSuccess('Teklif kaydi silindi.');
+      showSuccess('Teklif dosyasi silindi.');
     } catch (deleteError) {
       setError(deleteError.message);
     }
@@ -340,26 +366,26 @@ export default function QuotesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teklifler"
-        description="Yeni teklif olusturun, kayitlari yonetin ve tek tikla PDF cikti alin"
+        title="Teklif Akisi"
+        description="Client tekliflerini operasyonel standartta olusturun, takip edin ve profesyonel PDF olarak paylasin"
       />
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div ref={formCardRef} className="card">
-          <h3 className="panel-title">{editingId ? 'Teklifi Duzenle' : 'Yeni Teklif'}</h3>
-          <p className="panel-description">Kalemleri girin, toplam otomatik hesaplanir ve teklif kaydolur.</p>
-          {loadingEdit ? <p className="mt-2 text-sm text-slate-500">Teklif kaydi yukleniyor...</p> : null}
+          <h3 className="panel-title">{editingId ? 'Teklif Dosyasini Duzenle' : 'Yeni Teklif Dosyasi'}</h3>
+          <p className="panel-description">Ajans hizmet kalemlerini girin, toplam otomatik hesaplansin ve dosya kaydolsun.</p>
+          {loadingEdit ? <p className="mt-2 text-sm text-slate-500">Teklif dosyasi yukleniyor...</p> : null}
 
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm text-slate-600">Musteri</label>
+                <label className="mb-1 block text-sm text-slate-600">Client / Brand</label>
                 <select
                   value={form.customerId}
                   onChange={(event) => setForm((prev) => ({ ...prev, customerId: event.target.value }))}
                   required
                 >
-                  <option value="">Musteri secin</option>
+                  <option value="">Client secin</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}
@@ -379,6 +405,11 @@ export default function QuotesPage() {
               </div>
             </div>
 
+            <AgencyPresetBar
+              onApplyServicePreset={applyServicePreset}
+              onApplyPaymentPlanPreset={applyPaymentPlanPreset}
+            />
+
             <ItemRows items={form.items} onChange={updateItem} onAdd={addItem} onRemove={removeItem} />
 
             <div className="flex items-center justify-between">
@@ -392,7 +423,7 @@ export default function QuotesPage() {
                   </button>
                 ) : null}
                 <button type="submit" className="btn-primary" disabled={saving || customers.length === 0}>
-                  {saving ? 'Kaydediliyor...' : editingId ? 'Guncelle' : 'Teklif Kaydet'}
+                  {saving ? 'Kaydediliyor...' : editingId ? 'Guncelle' : 'Teklifi Kaydet'}
                 </button>
               </div>
             </div>
@@ -400,16 +431,16 @@ export default function QuotesPage() {
         </div>
 
         <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Teklif</p>
+          <p className="text-sm text-slate-500">Toplam Teklif Dosyasi</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{totalQuotes}</p>
-          <p className="mt-3 text-sm text-slate-600">Toplam Tutar</p>
+          <p className="mt-3 text-sm text-slate-600">Bu Sayfada Beklenen Tutar</p>
           <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(pageTotal)}</p>
           {customers.length === 0 ? (
             <p className="mt-4 text-xs text-amber-700">
-              Teklif olusturmak icin once Musteriler ekranindan kayit ekleyin.
+              Teklif olusturmak icin once Clientlar ekranindan kayit ekleyin.
             </p>
           ) : null}
-          <div className="mt-4 chip">PDF Uyumlu</div>
+          <div className="mt-4 chip">Client'a Gonderime Hazir</div>
         </div>
       </div>
 
@@ -419,12 +450,12 @@ export default function QuotesPage() {
       <div className="card overflow-x-auto">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Kayitli teklif listesi ({totalQuotes}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
+            Teklif dosyalari ({totalQuotes}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
             Sayfa Toplami: {formatCurrency(pageTotal)}
           </p>
           <input
             type="text"
-            placeholder="Teklif ara (no, musteri, tarih)"
+            placeholder="Teklif ara (no, client, tarih)"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -438,7 +469,7 @@ export default function QuotesPage() {
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">
               <th className="py-2 pr-4">No</th>
-              <th className="py-2 pr-4">Musteri</th>
+              <th className="py-2 pr-4">Client</th>
               <th className="py-2 pr-4">Tarih</th>
               <th className="py-2 pr-4">Toplam</th>
               <th className="py-2">Islemler</th>
@@ -476,14 +507,14 @@ export default function QuotesPage() {
             {loading ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={5}>
-                  Teklif kayitlari yukleniyor...
+                  Teklif dosyalari yukleniyor...
                 </td>
               </tr>
             ) : null}
             {!loading && quotes.length === 0 ? (
               <tr>
                 <td className="py-8 text-center text-slate-500" colSpan={5}>
-                  Sonuc bulunamadi.
+                  Bu filtrede teklif bulunamadi.
                 </td>
               </tr>
             ) : null}
