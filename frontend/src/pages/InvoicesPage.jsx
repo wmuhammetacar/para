@@ -532,7 +532,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Faturalar" description="Oncelik gerektiren faturalari ve tahsilati takip edin." />
+      <PageHeader title="Faturalar" description="Tahsilat gerektiren faturalari takip edin." />
 
       {success ? <div className="status-success">{success}</div> : null}
       {error ? <div className="status-error">{error}</div> : null}
@@ -578,47 +578,49 @@ export default function InvoicesPage() {
         formatDate={formatDate}
       />
 
-      <InvoiceCreateSection
-        editingId={editingId}
-        loadingEdit={loadingEdit}
-        fromQuoteId={fromQuoteId}
-        quotes={quotes}
-        form={form}
-        customers={customers}
-        total={total}
-        savingFromQuote={savingFromQuote}
-        savingManual={savingManual}
-        formCardRef={formCardRef}
-        onFromQuoteChange={setFromQuoteId}
-        onCreateFromQuote={createFromQuote}
-        onFormChange={setForm}
-        onApplyServicePreset={applyServicePreset}
-        onApplyPaymentPlanPreset={applyPaymentPlanPreset}
-        onUpdateItem={updateItem}
-        onAddItem={addItem}
-        onRemoveItem={removeItem}
-        onResetForm={resetForm}
-        onSubmit={handleManualSubmit}
-        formatCurrency={formatCurrency}
-      />
+      <div className="space-y-4">
+        <InvoiceCreateSection
+          editingId={editingId}
+          loadingEdit={loadingEdit}
+          fromQuoteId={fromQuoteId}
+          quotes={quotes}
+          form={form}
+          customers={customers}
+          total={total}
+          savingFromQuote={savingFromQuote}
+          savingManual={savingManual}
+          formCardRef={formCardRef}
+          onFromQuoteChange={setFromQuoteId}
+          onCreateFromQuote={createFromQuote}
+          onFormChange={setForm}
+          onApplyServicePreset={applyServicePreset}
+          onApplyPaymentPlanPreset={applyPaymentPlanPreset}
+          onUpdateItem={updateItem}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+          onResetForm={resetForm}
+          onSubmit={handleManualSubmit}
+          formatCurrency={formatCurrency}
+        />
 
-      <ReminderOpsSection
-        loadingReminderOps={loadingReminderOps}
-        reminderOps={reminderOps}
-        reminderSummary={reminderSummary}
-        reminderPolicy={reminderPolicy}
-        reminderStatusFilters={reminderStatusFilters}
-        reminderOpsStatusFilter={reminderOpsStatusFilter}
-        reminderErrorBreakdown={reminderErrorBreakdown}
-        reminderJobs={reminderJobs}
-        retryingReminderId={retryingReminderId}
-        onReminderOpsStatusFilterChange={setReminderOpsStatusFilter}
-        onRetryReminderJob={retryReminderJob}
-        formatDateTime={formatDateTime}
-        reminderChannelLabel={reminderChannelLabel}
-        reminderStatusClasses={reminderStatusClasses}
-        reminderJobStatusLabel={reminderJobStatusLabel}
-      />
+        <ReminderOpsSection
+          loadingReminderOps={loadingReminderOps}
+          reminderOps={reminderOps}
+          reminderSummary={reminderSummary}
+          reminderPolicy={reminderPolicy}
+          reminderStatusFilters={reminderStatusFilters}
+          reminderOpsStatusFilter={reminderOpsStatusFilter}
+          reminderErrorBreakdown={reminderErrorBreakdown}
+          reminderJobs={reminderJobs}
+          retryingReminderId={retryingReminderId}
+          onReminderOpsStatusFilterChange={setReminderOpsStatusFilter}
+          onRetryReminderJob={retryReminderJob}
+          formatDateTime={formatDateTime}
+          reminderChannelLabel={reminderChannelLabel}
+          reminderStatusClasses={reminderStatusClasses}
+          reminderJobStatusLabel={reminderJobStatusLabel}
+        />
+      </div>
     </div>
   );
 }

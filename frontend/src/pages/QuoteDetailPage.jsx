@@ -56,8 +56,8 @@ export default function QuoteDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teklif Detayi"
-        description="Musteri bilgileri ve kalemler"
+        title="Teklif detay"
+        description="Teklif kalemleri ve musteri bilgisi"
         actions={
           <>
             <Link to="/quotes" className="btn-secondary">
@@ -90,7 +90,7 @@ export default function QuoteDetailPage() {
         <>
           <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
             <div className="card">
-              <h3 className="panel-title">Teklif Ozeti</h3>
+              <h3 className="panel-title">Teklif ozeti</h3>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-slate-500">Teklif No:</span>{' '}
@@ -119,10 +119,10 @@ export default function QuoteDetailPage() {
               </div>
             </div>
 
-            <div className="stat-card">
-              <p className="text-sm text-slate-500">Hizmet Kalemi</p>
+            <div className="card-subtle rounded-2xl border p-5">
+              <p className="text-sm text-slate-500">Hizmet kalemi</p>
               <p className="mt-1 text-3xl font-bold text-slate-900">{itemCount}</p>
-              <p className="mt-4 text-sm text-slate-500">Teklif Toplami</p>
+              <p className="mt-4 text-sm text-slate-500">Teklif toplami</p>
               <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(quote.total)}</p>
             </div>
           </div>

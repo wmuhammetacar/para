@@ -21,8 +21,8 @@ export default function QuoteListSection({
     <div className="card overflow-x-auto">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">
-          Teklifler ({totalQuotes}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} -
-          Sayfa Toplami: {formatCurrency(pageTotal)}
+          Teklifler ({totalQuotes}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} - Bu sayfa:{' '}
+          {formatCurrency(pageTotal)}
         </p>
         <input
           type="text"
@@ -51,7 +51,7 @@ export default function QuoteListSection({
               <td className="table-cell-muted py-3 pr-4">{formatDate(quote.date)}</td>
               <td className="py-3 pr-4 font-medium text-slate-800">{formatCurrency(quote.total)}</td>
               <td className="py-3">
-                <div className="table-actions">
+                <div className="row-actions">
                   <Link to={`/quotes/${quote.id}`} className="btn-secondary">
                     {ACTION_LABELS.detail}
                   </Link>
@@ -63,7 +63,7 @@ export default function QuoteListSection({
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
+                    className="btn-danger"
                     onClick={() => onRemoveQuote(quote)}
                   >
                     {ACTION_LABELS.delete}
@@ -93,7 +93,7 @@ export default function QuoteListSection({
         <p className="text-xs text-slate-500">
           Toplam {totalQuotes} kayit, sayfa basi {pagination.limit} kayit
         </p>
-        <div className="table-actions">
+        <div className="row-actions">
           <button
             type="button"
             className="btn-secondary px-3 py-2 text-xs"

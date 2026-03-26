@@ -18,41 +18,31 @@ export default function ReminderOpsSection({
   reminderJobStatusLabel
 }) {
   return (
-    <div className="card bg-slate-50/70">
+    <div className="card-subtle rounded-2xl border p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="panel-title">Hatirlatmalar</h3>
-          <p className="text-xs text-slate-500">Ikincil izleme alani</p>
+          <h3 className="panel-title">Hatirlatma kayitlari</h3>
+          <p className="text-xs text-slate-500">Gonderim gecmisini kontrol edin.</p>
         </div>
         <span className="chip">Kayit: {reminderOps.filteredCount}</span>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-2">
-          <p className="text-[11px] text-amber-700">Kuyrukta</p>
-          <p className="text-sm font-semibold text-amber-800">{reminderSummary.queued}</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+          <p className="text-[11px] text-slate-500">Kuyrukta</p>
+          <p className="text-sm font-semibold text-slate-800">{reminderSummary.queued}</p>
         </div>
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-2">
-          <p className="text-[11px] text-rose-700">Hata</p>
-          <p className="text-sm font-semibold text-rose-800">{reminderSummary.failed}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+          <p className="text-[11px] text-slate-500">Hata</p>
+          <p className="text-sm font-semibold text-slate-800">{reminderSummary.failed}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-2">
-          <p className="text-[11px] text-slate-500">24s Hata</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+          <p className="text-[11px] text-slate-500">24s hata</p>
           <p className="text-sm font-semibold text-slate-800">{reminderSummary.failedLast24h}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-2">
-          <p className="text-[11px] text-slate-500">Hata Orani</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+          <p className="text-[11px] text-slate-500">Hata orani</p>
           <p className="text-sm font-semibold text-slate-800">%{reminderSummary.failedRate}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-2">
-          <p className="text-[11px] text-slate-500">Deneme Limiti</p>
-          <p className="text-sm font-semibold text-slate-800">{reminderPolicy.maxRetryCount}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-2">
-          <p className="text-[11px] text-slate-500">Kanal (WA/E-posta)</p>
-          <p className="text-sm font-semibold text-slate-800">
-            {reminderSummary.whatsapp}/{reminderSummary.email}
-          </p>
         </div>
       </div>
 
@@ -70,7 +60,7 @@ export default function ReminderOpsSection({
             {option.label}
           </button>
         ))}
-        <span className="ml-auto text-xs text-slate-500">En sik hata: {reminderErrorBreakdown[0]?.message || '-'}</span>
+        <span className="ml-auto text-xs text-slate-500">Maks deneme: {reminderPolicy.maxRetryCount}</span>
       </div>
 
       {reminderErrorBreakdown.length > 0 ? (
@@ -128,7 +118,7 @@ export default function ReminderOpsSection({
                     {job.status === 'failed' ? (
                       <button
                         type="button"
-                        className="btn-secondary border-rose-200 text-rose-700 hover:bg-rose-50"
+                        className="btn-secondary"
                         onClick={() => onRetryReminderJob(job.id)}
                         disabled={
                           retryingReminderId === job.id ||

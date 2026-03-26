@@ -25,11 +25,11 @@ export default function AppLayout() {
   return (
     <div className="app-shell min-h-screen">
       <div className="mx-auto flex min-h-screen w-full max-w-[1450px] flex-col lg:flex-row">
-        <aside className="border-b border-slate-200 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 px-4 py-5 text-slate-100 lg:w-72 lg:border-b-0 lg:border-r lg:px-5">
+        <aside className="border-b border-slate-200 bg-slate-950 px-4 py-5 text-slate-100 lg:w-72 lg:border-b-0 lg:border-r lg:px-5">
           <div className="flex items-center justify-between lg:block">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">Teklifim</h1>
-              <p className="mt-1 text-xs text-slate-300">Ajans yonetimi</p>
+              <p className="mt-1 text-xs text-slate-300">Ajans is akisi</p>
             </div>
           </div>
 
@@ -42,7 +42,7 @@ export default function AppLayout() {
                   `nav-link rounded-xl px-3 py-2.5 ${
                     isActive
                       ? 'nav-link-active bg-brand-500 text-white shadow-md shadow-brand-900/30'
-                      : 'nav-link-idle bg-slate-800/80 text-slate-100 hover:bg-slate-700'
+                      : 'nav-link-idle bg-slate-900 text-slate-100 hover:bg-slate-800'
                   }`
                 }
               >
@@ -63,7 +63,7 @@ export default function AppLayout() {
                     `nav-link rounded-xl px-3 py-2.5 ${
                       isActive
                         ? 'nav-link-active bg-brand-500 text-white shadow-md shadow-brand-900/30'
-                        : 'nav-link-idle bg-slate-800/80 text-slate-100 hover:bg-slate-700'
+                        : 'nav-link-idle bg-slate-900 text-slate-100 hover:bg-slate-800'
                     }`
                   }
                 >
@@ -74,13 +74,13 @@ export default function AppLayout() {
             </nav>
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-700/90 bg-slate-900/60 p-3 text-xs text-slate-300 lg:mt-10">
+          <div className="mt-6 rounded-xl border border-slate-700/90 bg-slate-900 p-3 text-xs text-slate-300 lg:mt-10">
             <p className="font-semibold text-white">{user?.companyName || 'Teklifim'}</p>
             <p className="mt-1 break-all">{user?.email}</p>
             <button
               type="button"
               onClick={logout}
-              className="btn-secondary mt-3 w-full border-slate-600 bg-slate-700 text-slate-100 hover:bg-slate-600"
+              className="btn-secondary mt-3 w-full border-slate-600 bg-slate-800 text-slate-100 hover:bg-slate-700"
             >
               Oturumu Kapat
             </button>
@@ -88,7 +88,7 @@ export default function AppLayout() {
         </aside>
 
         <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-          <header className="card mb-6 fade-in bg-white/85 backdrop-blur-sm">
+          <header className="card-subtle mb-6 fade-in rounded-2xl border px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
                 <p className="text-sm text-slate-500">Bugun</p>

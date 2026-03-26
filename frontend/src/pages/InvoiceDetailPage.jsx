@@ -205,8 +205,8 @@ export default function InvoiceDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fatura Detayi"
-        description="Tahsilat durumu ve fatura kalemleri"
+        title="Fatura detay"
+        description="Tahsilat durumu ve kalemler"
         actions={
           <>
             <Link to="/invoices" className="btn-secondary">
@@ -224,7 +224,7 @@ export default function InvoiceDetailPage() {
                 disabled={(invoice.payment_status || 'pending') === 'paid' || sendingReminder === 'whatsapp'}
                 onClick={() => handleReminder('whatsapp')}
               >
-                {sendingReminder === 'whatsapp' ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
+                {sendingReminder === 'whatsapp' ? 'Hazirlaniyor...' : 'WA Hatirlat'}
               </button>
             ) : null}
             {invoice ? (
@@ -234,7 +234,7 @@ export default function InvoiceDetailPage() {
                 disabled={(invoice.payment_status || 'pending') === 'paid' || sendingReminder === 'email'}
                 onClick={() => handleReminder('email')}
               >
-                {sendingReminder === 'email' ? 'Hazirlaniyor...' : 'E-posta Hatirlat'}
+                {sendingReminder === 'email' ? 'Hazirlaniyor...' : 'E-posta'}
               </button>
             ) : null}
             {invoice ? (
@@ -274,7 +274,7 @@ export default function InvoiceDetailPage() {
         <>
           <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
             <div className="card">
-              <h3 className="panel-title">Fatura Ozeti</h3>
+              <h3 className="panel-title">Fatura ozeti</h3>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-slate-500">Fatura No:</span>{' '}
@@ -325,12 +325,12 @@ export default function InvoiceDetailPage() {
               </div>
             </div>
 
-            <div className="stat-card">
-              <p className="text-sm text-slate-500">Hizmet Kalemi</p>
+            <div className="card-subtle rounded-2xl border p-5">
+              <p className="text-sm text-slate-500">Hizmet kalemi</p>
               <p className="mt-1 text-3xl font-bold text-slate-900">{itemCount}</p>
-              <p className="mt-4 text-sm text-slate-500">Fatura Toplami</p>
+              <p className="mt-4 text-sm text-slate-500">Fatura toplami</p>
               <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(invoice.total)}</p>
-              <p className="mt-4 text-sm text-slate-500">Tahsilat Durumu</p>
+              <p className="mt-4 text-sm text-slate-500">Tahsilat durumu</p>
               <p
                 className={`mt-1 text-sm font-semibold ${
                   (invoice.payment_status || 'pending') === 'paid'
@@ -376,9 +376,9 @@ export default function InvoiceDetailPage() {
             </table>
           </div>
 
-          <div className="card overflow-x-auto">
+          <div className="card-subtle overflow-x-auto rounded-2xl border p-5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-lg font-semibold text-slate-900">Tahsilat Hatirlatma Gecmisi</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Hatirlatma gecmisi</h3>
               {loadingReminders ? <p className="text-xs text-slate-500">Guncelleniyor...</p> : null}
             </div>
             <table className="mt-4 min-w-full text-left text-sm">

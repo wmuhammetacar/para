@@ -1,8 +1,8 @@
 export default function PeriodFilterCard({ period, periodOptions, periodLabel, periodRangeText, onPeriodChange }) {
   return (
-    <div className="card">
+    <div className="card-subtle rounded-2xl border px-5 py-4">
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <div className="chip bg-slate-100 text-slate-700">Donem</div>
+        <div className="chip">Donem</div>
         {periodOptions.map((option) => (
           <button
             key={option.value}
@@ -15,7 +15,7 @@ export default function PeriodFilterCard({ period, periodOptions, periodLabel, p
         ))}
         <span className="ml-auto text-xs text-slate-500">Secili donem: {periodLabel || 'Tum Zamanlar'}</span>
       </div>
-      <p className="mt-2 text-xs text-slate-500">Tarih araligi: {periodRangeText}</p>
+      <p className="mt-2 text-xs text-slate-500">{periodRangeText}</p>
     </div>
   );
 }

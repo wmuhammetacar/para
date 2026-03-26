@@ -183,8 +183,8 @@ export default function CustomersPage() {
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="card">
-          <h3 className="panel-title">{editingId ? 'Musteri Kaydini Duzenle' : 'Yeni Musteri Kaydi'}</h3>
-          <p className="panel-description">Iletisim bilgilerini tek yerden yonetin.</p>
+          <h3 className="panel-title">{editingId ? 'Musteriyi duzenle' : 'Yeni musteri'}</h3>
+          <p className="panel-description">Iletisim bilgilerini ekleyin.</p>
 
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
             <div>
@@ -241,12 +241,10 @@ export default function CustomersPage() {
           </form>
         </div>
 
-        <div className="stat-card">
-          <p className="text-sm text-slate-500">Toplam Musteri</p>
+        <div className="card-subtle rounded-2xl border p-5">
+          <p className="text-sm text-slate-500">Toplam musteri</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{totalCustomers}</p>
-          <p className="mt-3 text-xs text-slate-500">
-            Teklif ve fatura olustururken hazir musteri kaydi zaman kazandirir.
-          </p>
+          <p className="mt-3 text-xs text-slate-500">Teklif ve fatura icin hazir kayitlar.</p>
         </div>
       </div>
 
@@ -292,13 +290,13 @@ export default function CustomersPage() {
                   {customer.created_at ? formatDate(String(customer.created_at).slice(0, 10)) : '-'}
                 </td>
                 <td className="py-3">
-                  <div className="table-actions">
+                  <div className="row-actions">
                     <button type="button" className="btn-secondary" onClick={() => startEdit(customer)}>
                       {ACTION_LABELS.edit}
                     </button>
                     <button
                       type="button"
-                      className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
+                      className="btn-danger"
                       onClick={() => removeCustomer(customer.id)}
                     >
                       {ACTION_LABELS.delete}
@@ -328,7 +326,7 @@ export default function CustomersPage() {
           <p className="text-xs text-slate-500">
             Toplam {totalCustomers} kayit, sayfa basi {pagination.limit} kayit
           </p>
-          <div className="table-actions">
+          <div className="row-actions">
             <button
               type="button"
               className="btn-secondary px-3 py-2 text-xs"

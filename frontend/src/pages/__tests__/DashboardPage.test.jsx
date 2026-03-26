@@ -158,9 +158,9 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     render(<DashboardPage />);
 
-    expect(await screen.findByText('Toplam Musteri')).toBeInTheDocument();
-    expect(screen.getByText('Son Hareketler')).toBeInTheDocument();
-    expect(screen.getByText('Donusum Ozeti')).toBeInTheDocument();
+    expect(await screen.findByText('Toplam musteri')).toBeInTheDocument();
+    expect(screen.getByText('Son hareketler')).toBeInTheDocument();
+    expect(screen.getByText('Donusum')).toBeInTheDocument();
     expect(screen.getByText('Fatura Olusturuldu')).toBeInTheDocument();
 
     await waitFor(() => {

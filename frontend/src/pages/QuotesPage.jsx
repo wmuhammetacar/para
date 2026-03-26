@@ -319,8 +319,11 @@ export default function QuotesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Teklifler"
-        description="Teklif olusturun ve takip edin."
+        description="Teklifleri olusturun ve takip edin."
       />
+
+      {success ? <div className="status-success">{success}</div> : null}
+      {error ? <div className="status-error">{error}</div> : null}
 
       <QuoteEditorSection
         formCardRef={formCardRef}
@@ -342,9 +345,6 @@ export default function QuotesPage() {
         onRemoveItem={removeItem}
         formatCurrency={formatCurrency}
       />
-
-      {success ? <div className="status-success">{success}</div> : null}
-      {error ? <div className="status-error">{error}</div> : null}
 
       <QuoteListSection
         quotes={quotes}

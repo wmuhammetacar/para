@@ -4,20 +4,20 @@ export default function AgingBucketsCard({ loading, stats, formatCurrency }) {
   }
 
   return (
-    <div className="card">
-      <h3 className="text-lg font-semibold text-slate-900">Gecikme Yaslandirmasi</h3>
-      <p className="mt-1 text-sm text-slate-600">Gecikmenin gun dagilimi</p>
+    <div className="card-subtle rounded-2xl border p-5">
+      <h3 className="text-lg font-semibold text-slate-900">Gecikme dagilimi</h3>
+      <p className="mt-1 text-sm text-slate-600">Vadesi gecen tutarlar</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-          <p className="text-xs font-semibold text-amber-700">0-7 Gun</p>
-          <p className="mt-1 text-lg font-bold text-amber-700">{formatCurrency(stats.overdueBuckets?.days0to7)}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold text-slate-600">0-7 gun</p>
+          <p className="mt-1 text-lg font-bold text-slate-900">{formatCurrency(stats.overdueBuckets?.days0to7)}</p>
         </div>
-        <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
-          <p className="text-xs font-semibold text-orange-700">8-30 Gun</p>
-          <p className="mt-1 text-lg font-bold text-orange-700">{formatCurrency(stats.overdueBuckets?.days8to30)}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold text-slate-600">8-30 gun</p>
+          <p className="mt-1 text-lg font-bold text-slate-900">{formatCurrency(stats.overdueBuckets?.days8to30)}</p>
         </div>
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
-          <p className="text-xs font-semibold text-rose-700">31+ Gun</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold text-slate-600">31+ gun</p>
           <p className="mt-1 text-lg font-bold text-rose-700">{formatCurrency(stats.overdueBuckets?.days31plus)}</p>
         </div>
       </div>

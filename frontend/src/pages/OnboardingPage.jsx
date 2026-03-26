@@ -35,7 +35,7 @@ const setupStatusConfig = {
     className: 'border-sky-200 bg-sky-50 text-sky-700'
   },
   warming_up: {
-    label: 'Hiz Kazaniyor',
+    label: 'Devam ediyor',
     className: 'border-amber-200 bg-amber-50 text-amber-700'
   },
   not_started: {
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
           <div className="card">
             <p className="text-xs text-slate-500">Kalan Adim</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{activation.remainingSteps}</p>
-            <p className="mt-2 text-xs text-slate-500">Oncelik: temel kayitlar</p>
+            <p className="mt-2 text-xs text-slate-500">Temel kayitlar</p>
           </div>
           <div className="card">
             <p className="text-xs text-slate-500">Tahmini Sure</p>
@@ -149,8 +149,8 @@ export default function OnboardingPage() {
 
       {!loading && activation.quickWins.length > 0 ? (
         <div className="card">
-          <h3 className="text-lg font-semibold text-slate-900">Oncelikli Adimlar</h3>
-          <p className="mt-1 text-sm text-slate-600">Hizli baslangic adimlari</p>
+          <h3 className="text-lg font-semibold text-slate-900">Siradaki adimlar</h3>
+          <p className="mt-1 text-sm text-slate-600">Kurulumu hizlandirin.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {activation.quickWins.map((quickWin) => (
               <div key={quickWin.key} className="rounded-xl border border-slate-200 bg-slate-50 p-3">

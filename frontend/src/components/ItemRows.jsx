@@ -17,7 +17,7 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
         return (
           <div
             key={index}
-            className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-2 md:grid-cols-[1.7fr_0.7fr_0.9fr_0.9fr_auto]"
+            className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[1.7fr_0.7fr_0.9fr_0.9fr_auto]"
           >
             <input
               type="text"
@@ -41,13 +41,13 @@ export default function ItemRows({ items, onChange, onAdd, onRemove }) {
               value={item.unitPrice}
               onChange={(event) => onChange(index, 'unitPrice', event.target.value)}
             />
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
               {formatCurrency(lineTotal)}
             </div>
             <button
               type="button"
               onClick={() => onRemove(index)}
-              className="btn-secondary"
+              className="btn-secondary px-3 py-2"
               disabled={items.length === 1}
             >
               Sil

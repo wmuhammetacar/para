@@ -25,8 +25,8 @@ export default function QuoteEditorSection({
   return (
     <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
       <div ref={formCardRef} className="card">
-        <h3 className="panel-title">{editingId ? 'Teklifi Duzenle' : 'Yeni Teklif'}</h3>
-        <p className="panel-description">Musteri, tarih ve kalemleri girin. Toplam otomatik hesaplanir.</p>
+        <h3 className="panel-title">{editingId ? 'Teklifi duzenle' : 'Yeni teklif'}</h3>
+        <p className="panel-description">Musteri ve kalemleri girin.</p>
         {loadingEdit ? <p className="mt-2 text-sm text-slate-500">Teklif yukleniyor...</p> : null}
 
         <form className="mt-4 space-y-4" onSubmit={onSubmit}>
@@ -83,14 +83,14 @@ export default function QuoteEditorSection({
         </form>
       </div>
 
-      <div className="stat-card">
-        <p className="text-sm text-slate-500">Toplam Teklif</p>
+      <div className="card-subtle rounded-2xl border p-5">
+        <p className="text-sm text-slate-500">Toplam teklif</p>
         <p className="mt-2 text-3xl font-bold text-slate-900">{totalQuotes}</p>
-        <p className="mt-3 text-sm text-slate-600">Bu sayfadaki toplam tutar</p>
+        <p className="mt-3 text-sm text-slate-600">Bu sayfadaki toplam</p>
         <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(pageTotal)}</p>
         {customers.length === 0 ? (
           <p className="mt-4 text-xs text-amber-700">
-            Teklif olusturmak icin once Musteriler ekranindan kayit ekleyin.
+            Teklif olusturmak icin once musteri ekleyin.
           </p>
         ) : null}
       </div>

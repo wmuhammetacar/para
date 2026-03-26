@@ -26,9 +26,10 @@ export default function InvoiceCreateSection({
   formatCurrency
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="card">
-        <h3 className="panel-title">Tekliften Olustur</h3>
+    <div className="grid gap-4 lg:grid-cols-[1fr_1.45fr]">
+      <div className="card-subtle rounded-2xl border p-5">
+        <h3 className="panel-title">Tekliften fatura</h3>
+        <p className="panel-description">Hazir teklifi tek adimda faturaya cevirin.</p>
         <div className="mt-3 flex flex-col gap-2 md:flex-row">
           <select value={fromQuoteId} onChange={(event) => onFromQuoteChange(event.target.value)}>
             <option value="">Teklif secin</option>
@@ -39,13 +40,13 @@ export default function InvoiceCreateSection({
             ))}
           </select>
           <button type="button" className="btn-primary md:w-auto" onClick={onCreateFromQuote} disabled={savingFromQuote}>
-            {savingFromQuote ? 'Olusturuluyor...' : 'Olustur'}
+            {savingFromQuote ? 'Olusturuluyor...' : 'Fatura Olustur'}
           </button>
         </div>
       </div>
 
       <div ref={formCardRef} className="card">
-        <h3 className="panel-title">{editingId ? 'Faturayi Duzenle' : 'Manuel Fatura'}</h3>
+        <h3 className="panel-title">{editingId ? 'Faturayi duzenle' : 'Manuel fatura olustur'}</h3>
 
         <form className="mt-4 space-y-4" onSubmit={onSubmit}>
           {loadingEdit ? <p className="text-sm text-slate-500">Fatura bilgisi yukleniyor...</p> : null}

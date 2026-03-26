@@ -109,7 +109,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Panel" description="Bugun dikkat gerektiren tahsilatlari ve son hareketleri izleyin." />
+      <PageHeader title="Panel" description="Bugun odaklanmaniz gereken tahsilatlari gorun." />
 
       <PeriodFilterCard
         period={period}
@@ -128,9 +128,10 @@ export default function DashboardPage() {
         formatCurrency={formatCurrency}
       />
 
-      <ConversionSummaryCard loading={loading} growth={growth} formatCurrency={formatCurrency} />
-
-      <AgingBucketsCard loading={loading} stats={stats} formatCurrency={formatCurrency} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ConversionSummaryCard loading={loading} growth={growth} formatCurrency={formatCurrency} />
+        <AgingBucketsCard loading={loading} stats={stats} formatCurrency={formatCurrency} />
+      </div>
 
       <RecentActivitiesCard
         loading={loading}

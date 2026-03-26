@@ -46,12 +46,12 @@ export default function InvoiceListSection({
     <div className="card overflow-x-auto">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Fatura Listesi</h3>
-          <p className="text-xs text-slate-500">Oncelik: bekleyen ve geciken faturalar</p>
+          <h3 className="text-lg font-semibold text-slate-900">Fatura listesi</h3>
+          <p className="text-xs text-slate-500">Bekleyen ve geciken faturalara odaklanin.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="chip border-amber-200 bg-amber-50 text-amber-700">Acik: {formatCurrency(pendingReceivable)}</span>
-          <span className="chip border-rose-200 bg-rose-50 text-rose-700">Geciken: {formatCurrency(overdueReceivable)}</span>
+          <span className="chip">Acik: {formatCurrency(pendingReceivable)}</span>
+          <span className="chip">Geciken: {formatCurrency(overdueReceivable)}</span>
         </div>
       </div>
 
@@ -73,11 +73,11 @@ export default function InvoiceListSection({
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="btn-secondary border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          className="btn-secondary"
           onClick={() => onBulkUpdatePaymentStatus('paid')}
           disabled={savingBulkStatus || selectedCount === 0}
         >
-          {savingBulkStatus ? 'Isleniyor...' : 'Secilenleri Tahsil Et'}
+          {savingBulkStatus ? 'Isleniyor...' : 'Secilenleri tahsil et'}
         </button>
         <button
           type="button"
@@ -85,7 +85,7 @@ export default function InvoiceListSection({
           onClick={() => onBulkUpdatePaymentStatus('pending')}
           disabled={savingBulkStatus || selectedCount === 0}
         >
-          Secilenleri Takibe Al
+          Secilenleri takibe al
         </button>
         {selectedCount > 0 ? (
           <button type="button" className="btn-secondary" onClick={onClearSelection}>
@@ -96,7 +96,7 @@ export default function InvoiceListSection({
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">
-          Faturalar ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} - Sayfa toplami:{' '}
+          Faturalar ({totalInvoices}) - Sayfa {pagination.page}/{Math.max(1, pagination.totalPages || 1)} - Bu sayfa:{' '}
           {formatCurrency(invoicesTotal)}
         </p>
         <input
@@ -144,7 +144,7 @@ export default function InvoiceListSection({
               </td>
               <td className="py-3 pr-4 font-medium text-slate-800">{formatCurrency(invoice.total)}</td>
               <td className="py-3">
-                <div className="table-actions">
+                <div className="row-actions">
                   <Link to={`/invoices/${invoice.id}`} className="btn-secondary">
                     {ACTION_LABELS.detail}
                   </Link>
@@ -163,7 +163,7 @@ export default function InvoiceListSection({
                       (invoice.payment_status || 'pending') === 'paid'
                     }
                   >
-                    {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
+                    {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WA Hatirlat'}
                   </button>
                   <button
                     type="button"
@@ -171,22 +171,18 @@ export default function InvoiceListSection({
                     onClick={() => onSendReminder(invoice, 'email')}
                     disabled={sendingReminderKey === `${invoice.id}:email` || (invoice.payment_status || 'pending') === 'paid'}
                   >
-                    {sendingReminderKey === `${invoice.id}:email` ? 'Hazirlaniyor...' : 'E-posta Hatirlat'}
+                    {sendingReminderKey === `${invoice.id}:email` ? 'Hazirlaniyor...' : 'E-posta'}
                   </button>
                   <button
                     type="button"
-                    className={
-                      (invoice.payment_status || 'pending') === 'paid'
-                        ? 'btn-secondary'
-                        : 'btn-secondary border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                    }
+                    className="btn-secondary"
                     onClick={() => onUpdatePaymentStatus(invoice, (invoice.payment_status || 'pending') === 'paid' ? 'pending' : 'paid')}
                   >
                     {(invoice.payment_status || 'pending') === 'paid' ? 'Takibe Al' : 'Tahsil Edildi'}
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
+                    className="btn-danger"
                     onClick={() => onRemoveInvoice(invoice)}
                   >
                     {ACTION_LABELS.delete}
@@ -214,7 +210,7 @@ export default function InvoiceListSection({
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <p className="text-xs text-slate-500">Toplam {totalInvoices} kayit, sayfa basi {pagination.limit} kayit</p>
-        <div className="table-actions">
+        <div className="row-actions">
           <button
             type="button"
             className="btn-secondary px-3 py-2 text-xs"

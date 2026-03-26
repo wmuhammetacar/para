@@ -108,7 +108,7 @@ describe('OnboardingPage', () => {
     expect(await screen.findByText('Kurulum Durumu: Yolda')).toBeInTheDocument();
     const invoiceStepLabels = await screen.findAllByText('Ilk Fatura Olusturma');
     expect(invoiceStepLabels.length).toBeGreaterThan(0);
-    expect(await screen.findByText('Oncelikli Adimlar')).toBeInTheDocument();
+    expect(await screen.findByText('Siradaki adimlar')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Durumu Yenile' }));
 

@@ -327,7 +327,7 @@ describe('InvoicesPage', () => {
 
     const selects = screen.getAllByRole('combobox');
     await user.selectOptions(selects[0], '7');
-    await user.click(screen.getByRole('button', { name: 'Olustur' }));
+    await user.click(screen.getByRole('button', { name: 'Fatura Olustur' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -351,7 +351,7 @@ describe('InvoicesPage', () => {
     );
 
     await screen.findByText('TKL-7 - Acar Insaat');
-    await user.click(screen.getByRole('button', { name: 'Olustur' }));
+    await user.click(screen.getByRole('button', { name: 'Fatura Olustur' }));
 
     expect(await screen.findByText('Faturaya cevrilecek teklifi secmelisiniz.')).toBeInTheDocument();
     expect(apiRequestMock).not.toHaveBeenCalledWith(
@@ -523,7 +523,7 @@ describe('InvoicesPage', () => {
     );
 
     const row = (await screen.findByText('FTR-9')).closest('tr');
-    await user.click(within(row).getByRole('button', { name: 'WhatsApp Hatirlat' }));
+    await user.click(within(row).getByRole('button', { name: 'WA Hatirlat' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(
@@ -567,7 +567,7 @@ describe('InvoicesPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Hatirlatmalar')).toBeInTheDocument();
+    expect(await screen.findByText('Hatirlatma kayitlari')).toBeInTheDocument();
     expect(await screen.findByText('SMTP timeout')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Yeniden Dene' }));

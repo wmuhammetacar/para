@@ -11,9 +11,9 @@ export default function RecentActivitiesCard({
   }
 
   return (
-    <div className="card overflow-x-auto">
+    <div className="card-subtle overflow-x-auto rounded-2xl border p-5">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold text-slate-900">Son Hareketler</h3>
+        <h3 className="text-lg font-semibold text-slate-900">Son hareketler</h3>
         <p className="text-xs text-slate-500">Son 8 kayit</p>
       </div>
 
