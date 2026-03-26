@@ -11,6 +11,10 @@ backend/database.sqlite
 backend/database.sqlite-journal
 backend/database.sqlite-shm
 backend/database.sqlite-wal
+backend/e2e.sqlite
+backend/e2e.sqlite-journal
+backend/e2e.sqlite-shm
+backend/e2e.sqlite-wal
 backend/node_modules
 frontend/node_modules
 frontend/dist
