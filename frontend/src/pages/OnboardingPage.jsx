@@ -149,8 +149,8 @@ export default function OnboardingPage() {
 
       {!loading && activation.quickWins.length > 0 ? (
         <div className="card">
-          <h3 className="text-lg font-semibold text-slate-900">Siradaki adimlar</h3>
-          <p className="mt-1 text-sm text-slate-600">Kurulumu hizlandirin.</p>
+          <h3 className="text-lg font-semibold text-slate-900">Oncelikli adimlar</h3>
+          <p className="mt-1 text-sm text-slate-600">Kurulumu hizli tamamlayin.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {activation.quickWins.map((quickWin) => (
               <div key={quickWin.key} className="rounded-xl border border-slate-200 bg-slate-50 p-3">

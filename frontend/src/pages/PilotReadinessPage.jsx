@@ -74,7 +74,7 @@ export default function PilotReadinessPage() {
     <div className="space-y-6">
       <PageHeader
         title="Hazirlik Kontrolu"
-        description="Kritik kontrol maddelerini ve risk seviyesini takip edin."
+        description="Kritik kontrolleri ve risk seviyesini takip edin."
         actions={
           <button type="button" className="btn-secondary" onClick={fetchReadiness} disabled={loading}>
             {loading ? 'Yenileniyor...' : 'Durumu Yenile'}
@@ -82,9 +82,9 @@ export default function PilotReadinessPage() {
         }
       />
 
-      <div className="card">
+      <div className="card-subtle rounded-2xl border px-5 py-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="chip bg-slate-100 text-slate-700">Donem</div>
+          <div className="chip">Donem</div>
           <select
             value={periodDays}
             onChange={(event) => setPeriodDays(Number(event.target.value))}
@@ -154,7 +154,7 @@ export default function PilotReadinessPage() {
                 <div key={check.key} className={`rounded-xl border p-3 ${resolveCheckClass(check)}`}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold">{check.label}</p>
-                    <span className="text-xs">{check.passed ? 'Gecti' : 'Aksiyon Gerekli'}</span>
+                    <span className="text-xs">{check.passed ? 'Gecti' : 'Adim gerekli'}</span>
                   </div>
                   <p className="mt-1 text-xs">
                     Deger: {check.value} | Hedef: {check.target}
@@ -165,15 +165,15 @@ export default function PilotReadinessPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold text-slate-900">Oncelikli Aksiyonlar</h3>
-            <p className="mt-1 text-sm text-slate-600">Skoru yukari tasimak icin ilk adimlar</p>
+            <h3 className="text-lg font-semibold text-slate-900">Oncelikli adimlar</h3>
+            <p className="mt-1 text-sm text-slate-600">Skoru artirmak icin adimlar</p>
             <div className="mt-4 space-y-3">
               {(readiness.nextActions || []).map((action) => (
                 <div key={action.key} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <p className="text-sm font-semibold text-slate-900">{action.label}</p>
                   <p className="mt-1 text-xs text-slate-500">{action.reason}</p>
                   <Link to={action.ctaPath} className="btn-secondary mt-3 inline-flex">
-                    Aksiyona Git
+                    Adima Git
                   </Link>
                 </div>
               ))}

@@ -61,7 +61,7 @@ describe('PilotReadinessPage', () => {
     expect(await screen.findByText('Hazirlik Kontrolu')).toBeInTheDocument();
     expect(await screen.findByText('Kontrol Listesi')).toBeInTheDocument();
     expect(await screen.findByText('Onboarding Tamamlama')).toBeInTheDocument();
-    expect(await screen.findByText('Oncelikli Aksiyonlar')).toBeInTheDocument();
+    expect(await screen.findByText('Oncelikli adimlar')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith('/dashboard/pilot-readiness?period=30', {

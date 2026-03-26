@@ -523,7 +523,7 @@ describe('InvoicesPage', () => {
     );
 
     const row = (await screen.findByText('FTR-9')).closest('tr');
-    await user.click(within(row).getByRole('button', { name: 'WA Hatirlat' }));
+    await user.click(within(row).getByRole('button', { name: 'WhatsApp Hatirlat' }));
 
     await waitFor(() => {
       expect(apiRequestMock).toHaveBeenCalledWith(

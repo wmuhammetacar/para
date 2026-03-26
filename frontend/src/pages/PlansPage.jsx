@@ -78,7 +78,7 @@ export default function PlansPage() {
     <div className="space-y-6">
       <PageHeader
         title="Paketler ve Kullanim"
-        description="Paketinizi yonetin, limit kullanimini takip edin ve buyume asamasina gore gecis yapin."
+        description="Paketinizi ve limit kullanimini takip edin."
         actions={
           <button type="button" className="btn-secondary" onClick={fetchPlanSnapshot} disabled={loading}>
             {loading ? 'Yenileniyor...' : 'Durumu Yenile'}
@@ -88,7 +88,7 @@ export default function PlansPage() {
 
       {error ? <div className="status-error">{error}</div> : null}
       <div className="status-warning">
-        Paket degisikligi guvenlik geregi dogrudan panelden yapilmaz. Lutfen billing/destek ekibi ile iletisime gecin.
+        Paket degisikligi guvenlik nedeniyle panelden yapilmaz. Lutfen destek ekibi ile iletisime gecin.
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -98,11 +98,7 @@ export default function PlansPage() {
           return (
             <div
               key={plan.code}
-              className={`rounded-2xl border p-5 ${
-                isCurrent
-                  ? 'border-brand-300 bg-gradient-to-b from-brand-50 to-white'
-                  : 'border-slate-200 bg-white'
-              }`}
+              className={`card ${isCurrent ? 'border-brand-300 bg-brand-50/40' : ''}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
@@ -127,7 +123,7 @@ export default function PlansPage() {
                 className={isCurrent ? 'btn-secondary mt-4 w-full' : 'btn-primary mt-4 w-full'}
                 disabled
               >
-                {isCurrent ? 'Mevcut Paket' : 'Destek Ile Gec'}
+                {isCurrent ? 'Mevcut Paket' : 'Destek ile Gec'}
               </button>
             </div>
           );
@@ -135,7 +131,7 @@ export default function PlansPage() {
       </div>
 
       <div className="card">
-        <h3 className="text-lg font-semibold text-slate-900">Kullanim Ozeti</h3>
+        <h3 className="text-lg font-semibold text-slate-900">Kullanim ozeti</h3>
         <p className="mt-1 text-sm text-slate-600">Fatura donemi: {periodText}</p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

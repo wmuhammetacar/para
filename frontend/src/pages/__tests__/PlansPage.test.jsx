@@ -81,9 +81,9 @@ describe('PlansPage', () => {
     expect(await screen.findByText('Paketler ve Kullanim')).toBeInTheDocument();
     expect(await screen.findByText('Baslangic')).toBeInTheDocument();
     expect(await screen.findByText('Standart')).toBeInTheDocument();
-    expect(await screen.findByText(/billing\/destek ekibi/i)).toBeInTheDocument();
+    expect(await screen.findByText(/destek ekibi/i)).toBeInTheDocument();
 
-    expect(screen.getByRole('button', { name: 'Destek Ile Gec' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Destek ile Gec' })).toBeDisabled();
 
     expect(apiRequestMock).toHaveBeenCalledTimes(1);
     expect(authState.updateUser).not.toHaveBeenCalled();

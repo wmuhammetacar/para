@@ -30,7 +30,7 @@ export default function PrimaryStatsGrid({ loading, stats, updatedAt, formatCurr
       <div className="stat-card">
         <p className="text-sm text-slate-500">Takipteki fatura</p>
         <p className="mt-2 text-3xl font-bold text-slate-900">{stats.pendingInvoiceCount}</p>
-        <p className="mt-3 text-xs text-slate-500">Odeme bekleyen adet</p>
+        <p className="mt-3 text-xs text-slate-500">Tahsilat bekleyen adet</p>
       </div>
 
       <div className="stat-card">

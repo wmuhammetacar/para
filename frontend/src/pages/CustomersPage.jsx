@@ -175,7 +175,7 @@ export default function CustomersPage() {
   const totalCustomers = useMemo(() => Number(pagination.total) || customers.length, [pagination.total, customers.length]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Musteriler"
         description="Musteri kayitlarini yonetin."

@@ -32,7 +32,7 @@ export default function LoginPage() {
           <p className="chip bg-brand-100 text-brand-700">Teklifim</p>
           <h1 className="mt-4 text-3xl font-bold text-white">Ajansinizin teklif ve tahsilat akisini yonetin</h1>
           <p className="mt-3 text-sm text-slate-300">
-            Musteri kayitlari, teklifler, faturalar ve odeme takibini tek panelde yonetin.
+            Musteri kayitlari, teklifler, faturalar ve tahsilat takibini tek panelde yonetin.
           </p>
 
           <div className="mt-6 grid gap-3 text-sm text-slate-200">

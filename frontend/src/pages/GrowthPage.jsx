@@ -105,9 +105,9 @@ export default function GrowthPage() {
         }
       />
 
-      <div className="card">
+      <div className="card-subtle rounded-2xl border px-5 py-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="chip bg-slate-100 text-slate-700">Filtreler</div>
+          <div className="chip">Filtreler</div>
 
           <select
             value={periodDays}
@@ -183,7 +183,7 @@ export default function GrowthPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card">
             <h3 className="text-lg font-semibold text-slate-900">Donusum Hizi</h3>
-            <p className="mt-1 text-sm text-slate-600">Satis dongusunun ortalama hizlari</p>
+            <p className="mt-1 text-sm text-slate-600">Ortalama sureler</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">Tekliften Faturaya</p>
@@ -208,7 +208,7 @@ export default function GrowthPage() {
       {!loading ? (
         <div className="card overflow-x-auto">
           <h3 className="text-lg font-semibold text-slate-900">Kohort Tutulma Orani</h3>
-          <p className="mt-1 text-sm text-slate-600">Musteri kohortlarinin aylik devam oranlari</p>
+          <p className="mt-1 text-sm text-slate-600">Aylik devam oranlari</p>
 
           <table className="mt-4 min-w-full text-left text-sm">
             <thead>

@@ -224,7 +224,7 @@ export default function InvoiceDetailPage() {
                 disabled={(invoice.payment_status || 'pending') === 'paid' || sendingReminder === 'whatsapp'}
                 onClick={() => handleReminder('whatsapp')}
               >
-                {sendingReminder === 'whatsapp' ? 'Hazirlaniyor...' : 'WA Hatirlat'}
+                {sendingReminder === 'whatsapp' ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
               </button>
             ) : null}
             {invoice ? (
@@ -234,17 +234,13 @@ export default function InvoiceDetailPage() {
                 disabled={(invoice.payment_status || 'pending') === 'paid' || sendingReminder === 'email'}
                 onClick={() => handleReminder('email')}
               >
-                {sendingReminder === 'email' ? 'Hazirlaniyor...' : 'E-posta'}
+                {sendingReminder === 'email' ? 'Hazirlaniyor...' : 'E-posta Hatirlat'}
               </button>
             ) : null}
             {invoice ? (
               <button
                 type="button"
-                className={
-                  (invoice.payment_status || 'pending') === 'paid'
-                    ? 'btn-secondary'
-                    : 'btn-secondary border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                }
+                className="btn-secondary"
                 onClick={() =>
                   handlePaymentStatus((invoice.payment_status || 'pending') === 'paid' ? 'pending' : 'paid')
                 }
@@ -305,7 +301,7 @@ export default function InvoiceDetailPage() {
                   <span className="font-medium text-slate-800">{invoice.customer_address || '-'}</span>
                 </p>
                 <p className="sm:col-span-2">
-                  <span className="text-slate-500">Odeme Durumu:</span>{' '}
+                  <span className="text-slate-500">Tahsilat Durumu:</span>{' '}
                   <span className="font-medium text-slate-800">{paymentStatusLabel(invoice)}</span>
                 </p>
                 <p className="sm:col-span-2">

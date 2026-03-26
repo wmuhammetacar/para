@@ -4,7 +4,7 @@ export default function AgencyPresetBar({ onApplyServicePreset, onApplyPaymentPl
   return (
     <div className="card-subtle space-y-4 rounded-2xl p-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hazir hizmetler</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hazir Hizmetler</p>
         <p className="mt-1 text-xs text-slate-600">Sik kullandiginiz kalemleri ekleyin.</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {agencyServicePresets.map((preset) => (
@@ -22,7 +22,7 @@ export default function AgencyPresetBar({ onApplyServicePreset, onApplyPaymentPl
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hazir odeme planlari</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hazir Odeme Planlari</p>
         <p className="mt-1 text-xs text-slate-600">Odeme dagilimini tek adimda ekleyin.</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {paymentPlanPresets.map((preset) => (

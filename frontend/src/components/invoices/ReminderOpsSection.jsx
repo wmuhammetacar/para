@@ -84,7 +84,7 @@ export default function ReminderOpsSection({
               <th className="py-2 pr-4">Deneme</th>
               <th className="py-2 pr-4">Sonraki Deneme</th>
               <th className="py-2 pr-4">Hata</th>
-              <th className="py-2">Islem</th>
+              <th className="py-2">Islemler</th>
             </tr>
           </thead>
           <tbody>

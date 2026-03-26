@@ -120,7 +120,7 @@ export default function InvoiceListSection({
             <th className="py-2 pr-4">Vade</th>
             <th className="py-2 pr-4">Durum</th>
             <th className="py-2 pr-4">Toplam</th>
-            <th className="py-2">Islem</th>
+            <th className="py-2">Islemler</th>
           </tr>
         </thead>
         <tbody>
@@ -163,7 +163,7 @@ export default function InvoiceListSection({
                       (invoice.payment_status || 'pending') === 'paid'
                     }
                   >
-                    {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WA Hatirlat'}
+                    {sendingReminderKey === `${invoice.id}:whatsapp` ? 'Hazirlaniyor...' : 'WhatsApp Hatirlat'}
                   </button>
                   <button
                     type="button"
@@ -171,7 +171,7 @@ export default function InvoiceListSection({
                     onClick={() => onSendReminder(invoice, 'email')}
                     disabled={sendingReminderKey === `${invoice.id}:email` || (invoice.payment_status || 'pending') === 'paid'}
                   >
-                    {sendingReminderKey === `${invoice.id}:email` ? 'Hazirlaniyor...' : 'E-posta'}
+                    {sendingReminderKey === `${invoice.id}:email` ? 'Hazirlaniyor...' : 'E-posta Hatirlat'}
                   </button>
                   <button
                     type="button"
