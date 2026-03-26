@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { apiRequest, downloadPdf, formatCurrency, formatDate } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTimedMessage } from '../hooks/useTimedMessage';
 
 export default function QuoteDetailPage() {
   const { token } = useAuth();
@@ -10,8 +11,7 @@ export default function QuoteDetailPage() {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const successTimerRef = useRef(null);
+  const { message: success, showMessage: showSuccess } = useTimedMessage();
 
   useEffect(() => {
     async function fetchQuote() {
@@ -36,24 +36,6 @@ export default function QuoteDetailPage() {
 
     fetchQuote();
   }, [id, token]);
-
-  useEffect(() => {
-    return () => {
-      if (successTimerRef.current) {
-        clearTimeout(successTimerRef.current);
-      }
-    };
-  }, []);
-
-  function showSuccess(message) {
-    setSuccess(message);
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-    }
-    successTimerRef.current = setTimeout(() => {
-      setSuccess('');
-    }, 2500);
-  }
 
   async function handlePdfExport() {
     if (!quote) {
